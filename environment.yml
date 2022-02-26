@@ -1,0 +1,13 @@
+name: multitask-prompting-env
+channels:
+  - defaults
+  - pytorch
+dependencies:
+  - python=3.9
+  - anaconda
+  - pip
+  - pytorch=1.10.2
+  - pip:
+    - transformers=4.16.2
+    - datasets=1.18.3
+    - wandb=0.12.10
