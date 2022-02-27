@@ -1,4 +1,4 @@
-program: trainer.py
+program: ../warp_trainer.py
 method: random
 metric:
   goal: maximize
