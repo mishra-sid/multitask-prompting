@@ -1,6 +1,7 @@
 import torch
 import argparse
 import os
+import wandb
 from datasets import load_dataset
 from datasets.arrow_dataset import concatenate_datasets
 from openprompt.data_utils import InputExample
@@ -10,29 +11,31 @@ from openprompt import PromptForClassification
 
 parser = argparse.ArgumentParser("")
 parser.add_argument("--seed", type=int, default=144)
-parser.add_argument("--use_cuda",action="store_true" )
+parser.add_argument("--use_cuda",action="store_false" )
 parser.add_argument("--gradient_accumulation_steps", type = int, default = 1 )
 
 parser.add_argument("--n_epochs", type=int, default=10)
 parser.add_argument("--tune_plm", action="store_true")
 parser.add_argument("--model", type=str, default='bert', help="Using bert-base-cased")
 parser.add_argument("--model_name_or_path", default='bert-base-cased')
-parser.add_argument("--project_root", default="../", help="The project root in the file system")
+parser.add_argument("--project_root", default="./", help="The project root in the file system")
 
 #TODO data_dir not used currently
 parser.add_argument("--data_dir", type=str, default="../data") # sometimes, huggingface datasets can not be automatically downloaded due to network issue, please refer to 0_basic.py line 15 for solutions. 
 
 parser.add_argument("--result_file", type=str, default="results/results.txt")
-parser.add_argument("--max_steps", default=20000, type=int)
+parser.add_argument("--max_steps", default=100, type=int)
 parser.add_argument("--prompt_lr", type=float, default=0.3)
 parser.add_argument("--warmup_step_prompt", type=int, default=500)
-parser.add_argument("--eval_every_steps", type=int, default=500)
+parser.add_argument("--eval_every_steps", type=int, default=5)
 
 # TODO add similar hyper parameter for the mixed prompt used
 # parser.add_argument("--soft_token_num", type=int, default=20)
 
 parser.add_argument("--optimizer", type=str, default="adamw")
 args = parser.parse_args()
+
+wandb.init(config = args, project  = 'trial_prompting', entity = 'trial_1')
 
 args.result_file = os.path.join(args.project_root, args.result_file)
 
@@ -129,6 +132,8 @@ validation_dataloader = PromptDataLoader(
 from tqdm import tqdm
 import time
 prompt_model = wrapModel.cuda()
+
+wandb.watch(prompt_model)
 
 def evaluate(prompt_model, dataloader, desc):
     prompt_model.eval()
@@ -231,7 +236,7 @@ for epoch in range(args.n_epochs):
 
         tot_train_time += time.time()
 
-        if actual_step % args.gradient_accumulation_steps == 0 and glb_step >0 and glb_step % glb_step % args.eval_every_steps == 0:
+        if actual_step % args.gradient_accumulation_steps == 0 and glb_step >0 and glb_step % args.eval_every_steps == 0:
             val_acc = evaluate(prompt_model, validation_dataloader, desc="Valid")
             if val_acc >= best_val_acc:
                 # TODO Model saving code here if wandb is not already taking care of it
@@ -239,6 +244,9 @@ for epoch in range(args.n_epochs):
                 best_val_acc = val_acc
             
             acc_traces.append(val_acc)
+
+            metrics = {"validation_accuracy": val_acc}
+            wandb.log(metrics)
             print("Glb_step {}, val_acc {}, average time {}".format(glb_step, val_acc, tot_train_time/actual_step ), flush=True)
             prompt_model.train()
 

@@ -1,0 +1,19 @@
+program: trainer.py
+method: random
+metric:
+  goal: maximize
+  name: validation_accuracy
+parameters:
+  n_epochs:
+    value: 27
+  eval_every_steps:
+    value: 10
+  max_steps:
+    value: 40
+  prompt_lr:
+    values: [0.001, 0.01, 0.003,0.1,0.05]
+early_terminate:
+  type: hyperband
+  s: 2
+  eta: 3
+  max_iter: 27
