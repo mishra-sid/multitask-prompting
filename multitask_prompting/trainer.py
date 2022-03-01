@@ -26,6 +26,9 @@ class Trainer:
     def train(self, train_dataloader):
         args = self.args
 
+        #TODO extend to cases apart from classification
+        loss_func = torch.nn.CrossEntropyLoss()
+
         # Whether to tune finetune the model/non-prompting parameters:
         if args.task.lower()=='classification' or args.tune_plm:
             no_decay = ['bias', 'LayerNorm.weight'] # settting no decay to biase and LayerNorm parameters according to openprompt sample script
@@ -66,21 +69,20 @@ class Trainer:
         best_val_acc = 0
         glb_step = 0
         actual_step = 0
-        leave_training = False
-
-        acc_traces = []
+        # acc_traces = []
         tot_train_time = 0
-        pbar_update_freq = 10
-        prompt_model.train()
-
-        pbar = tqdm(total=tot_step, desc="Train")
+        pbar_update_freq = args.pbar_update_freq
+        
+        
+        self.model.train()
         for epoch in range(args.n_epochs):
-            print(f"Begin epoch {epoch}")
+            print(f"Starting epoch {epoch}")
+            pbar = tqdm(total=len(train_dataloader), desc="Train")
             for step, inputs in enumerate(train_dataloader):
                 if args.use_cuda:
                     inputs = inputs.cuda()
                 tot_train_time -= time.time()
-                logits = prompt_model(inputs)
+                logits = self.model(inputs)
                 labels = inputs['label']
                 loss = loss_func(logits, labels)
                 loss.backward()
@@ -88,12 +90,14 @@ class Trainer:
                 actual_step += 1
 
                 if actual_step % args.gradient_accumulation_steps == 0:
-                    torch.nn.utils.clip_grad_norm_(prompt_model.parameters(), 1.0)
+                    torch.nn.utils.clip_grad_norm_(self.model.parameters(), args.max_norm)
                     glb_step += 1
+                    wandb.log({'total_loss':tot_loss})
                     if glb_step % pbar_update_freq == 0:
                         aveloss = (tot_loss - log_loss)/pbar_update_freq
                         pbar.update(10)
                         pbar.set_postfix({'loss': aveloss})
+                        wandb.log({'avg_loss_past_update_freq_steps':aveloss})
                         log_loss = tot_loss
 
                 
@@ -111,38 +115,34 @@ class Trainer:
                 tot_train_time += time.time()
 
                 if actual_step % args.gradient_accumulation_steps == 0 and glb_step >0 and glb_step % args.eval_every_steps == 0:
-                    val_acc = evaluate(prompt_model, validation_dataloader, desc="Valid")
-                    if val_acc >= best_val_acc:
-                        # TODO Model saving code here if wandb is not already taking care of it
-                        # torch.save(prompt_model.state_dict(),f"{args.project_root}/../ckpts/{this_run_unicode}.ckpt")
-                        best_val_acc = val_acc
+                    val_acc = evaluate(eval_dataloader)
+                    # if val_acc >= best_val_acc:
+                    #     # TODO Model saving code here if wandb is not already taking care of it
+                    #     # torch.save(prompt_model.state_dict(),f"{args.project_root}/../ckpts/{this_run_unicode}.ckpt")
+                    #     best_val_acc = val_acc
                     
-                    acc_traces.append(val_acc)
+                    # acc_traces.append(val_acc)
 
                     metrics = {"validation_accuracy": val_acc}
                     wandb.log(metrics)
-                    print("Glb_step {}, val_acc {}, average time {}".format(glb_step, val_acc, tot_train_time/actual_step ), flush=True)
-                    prompt_model.train()
-
-                if glb_step > args.max_steps:
-                    leave_training = True
-                    break
-            
-            if leave_training:
-                break 
+                    print("Glb_step {}, val_acc {}, average time {}".format(glb_step, val_acc, tot_train_time/actual_step), flush=True)
+                    self.model.train()
     
-    def evaluate():
-        prompt_model.eval()
+    def evaluate(self,dataloader):
+        self.model.eval()
         allpreds = []
         alllabels = []
     
         for step, inputs in enumerate(dataloader):
             if args.use_cuda:
                 inputs = inputs.cuda()
-            logits = prompt_model(inputs)
+            logits = self.model(inputs)
             labels = inputs['label']
             alllabels.extend(labels.cpu().tolist())
             allpreds.extend(torch.argmax(logits, dim=-1).cpu().tolist())
         acc = sum([int(i==j) for i,j in zip(allpreds, alllabels)])/len(allpreds)
+
+        if self.args.do_eval:
+            print("Testing accuracy: ", acc)
         return acc
 

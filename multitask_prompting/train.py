@@ -21,6 +21,11 @@ if __name__ == "__name__":
     parser.add_argument('--model', type='str', default='bert')
     parser.add_argument('--base_plm', type='str', default='bert-base-uncased')
     parser.add_argument("--tune_plm", type=bool, default=False)
+    parser.add_argument("--gradient_accumulation_steps", type = int, default = 1 )
+    parser.add_argument("--pbar_update_freq", type = int, default = 10 )
+
+    
+
 
     # hyperparams
     parser.add_argument('--lr_plm',default=0.01, type=float)
@@ -34,6 +39,7 @@ if __name__ == "__name__":
     parser.add_argument("--warmup_steps_prompt", type=int, default=500)
     parser.add_argument("--warmup_tot_steps", type=int, default=500)
     parser.add_argument('--weight_decay', type=float, default = 0.0)
+    parser.add_argument('--max_norm',default=1.0, type=float)
 
 
     parser.add_argument('--do_train', type=bool, default=True)
@@ -44,15 +50,15 @@ if __name__ == "__name__":
     
     set_seed(args.seed)
     tokenizer = load_tokenizer(args)
-    #blah b;a
-    metadata, train_dataset, eval_dataset, test_dataset = load_and_cache_examples(args, tokenizer)
+
+    metadata, train_dataloader, eval_dataloader, test_dataloader = load_and_cache_examples(args, tokenizer)
 
     trainer = Trainer(args, metadata)
     if args.do_train:
-        trainer.train(args, train_dataset)
+        trainer.train(train_dataloader,eval_dataloader)
     
     if args.do_eval:
-        trainer.eval(args, eval_dataset, test_dataset)
+        trainer.eval(test_dataloader)
 
 
 
