@@ -1,6 +1,7 @@
+
 from transformers.models.bert.modeling_bert import BertPreTrainedModel, BertModel, BertConfig
 
-class WARP(BertPreTrainedModel):
+class BERT(BertPreTrainedModel):
         def __init__(self, metadata):    
             self.bert = BertModel(config=metadata) 
             
