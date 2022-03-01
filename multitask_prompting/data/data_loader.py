@@ -11,7 +11,9 @@ def load_and_cache_examples(args,tokenizer_dictionary):
     data_set = load_dataset(args.dataset).shuffle(seed=42)
     classes = data_set.features['label'].names
     data_set = data_set.rename_column("label", "labels")
-
+    train_dataloader=NULL
+    valid_dataloader=NULL
+    test_dataloader=NULL
     if args.tune_plm is "prompting" :
         trainvalid_test_dataset = data_set.train_test_split(test_size=args.test_split)
         train_valid_dataset =trainvalid_test_dataset["train"].train_test_split(test_size=args.valid_split)
@@ -85,20 +87,6 @@ def load_and_cache_examples(args,tokenizer_dictionary):
     }
 
     return (metadata,train_dataloader,valid_dataloader,test_dataloader)
-#
-# train_dataloader = PromptDataLoader(
-#     dataset = dataset_combined_train,
-#     tokenizer = tokenizer,
-#     template = WpromptTemplate,
-#     tokenizer_wrapper_class=WrapperClass
-# )
-#
-# validation_dataloader = PromptDataLoader(
-#     dataset = dataset_combined_test,
-#     tokenizer = tokenizer,
-#     template = WpromptTemplate,
-#     tokenizer_wrapper_class=WrapperClass
-# )
 
 def tokenize_function(dataset):
     return tokenizer["tokenizer"](dataset["text"], padding="max_length", truncation=True)
