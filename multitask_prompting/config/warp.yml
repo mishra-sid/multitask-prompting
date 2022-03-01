@@ -12,8 +12,11 @@ parameters:
     value: 40
   prompt_lr:
     values: [0.001, 0.01, 0.003,0.1,0.05]
-early_terminate:
-  type: hyperband
-  s: 2
-  eta: 3
-  max_iter: 27
+command:
+  - ${env}
+  - python
+  - ${program}
+  - "-b"
+  - your-training-config
+  - ${args}
+

@@ -1,0 +1,17 @@
+method: random
+metric:
+  goal: maximize
+  name: validation_accuracy
+parameters:
+  learning_rate:
+    values: [ 5e-5, 2e-5, 3e-5]
+  batch_size:
+    values: [16, 32]
+  epochs:
+    values: [2, 3, 5, 10]
+command:
+  - ${env}
+  - python
+  - ${program}
+  - "-b"
+  - ${args}
