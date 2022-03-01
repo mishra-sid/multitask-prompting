@@ -23,12 +23,18 @@ if __name__ == "__name__":
     parser.add_argument("--tune_plm", type=bool, default=False)
 
     # hyperparams
-    parser.add_argument('--learning_rate', type=float)
+    parser.add_argument('--lr_plm',default=0.01, type=float)
+    parser.add_argument('--lr_prompt',default=0.5, type=float)
     parser.add_argument('--batch_size', type=int)
     parser.add_argument('--epochs', type=int)
     parser.add_argument('--eval_every', type=int) 
-    parser.add_argument("--optimizer", type=str, default="adamw")
-    parser.add_argument("--warmup", type=int, default=500)
+    parser.add_argument("--optimizer_plm", type=str, default="adamw", help="optimizer for plm")
+    parser.add_argument("--optimizer_prompt", type=str, default="adamw", help= "optimizer for prompt tuning parameters")
+    parser.add_argument("--warmup_steps_plm", type=int, default=500)
+    parser.add_argument("--warmup_steps_prompt", type=int, default=500)
+    parser.add_argument("--warmup_tot_steps", type=int, default=500)
+    parser.add_argument('--weight_decay', type=float, default = 0.0)
+
 
     parser.add_argument('--do_train', type=bool, default=True)
     parser.add_argument('--do_eval', type=bool, default=True)
@@ -36,9 +42,9 @@ if __name__ == "__name__":
 
   
     
-    set_seed(args)
+    set_seed(args.seed)
     tokenizer = load_tokenizer(args)
-
+    #blah b;a
     metadata, train_dataset, eval_dataset, test_dataset = load_and_cache_examples(args, tokenizer)
 
     trainer = Trainer(args, metadata)

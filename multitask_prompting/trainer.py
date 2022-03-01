@@ -2,12 +2,20 @@
 from utils import MODEL_CLASSES
 import wandb
 import torch
+from transformers import  AdamW, get_linear_schedule_with_warmup,get_constant_schedule_with_warmup  # use AdamW is a standard practice for transformer 
+from transformers.optimization import Adafactor, AdafactorSchedule  # use Adafactor is the default setting for T5
 
 class Trainer:
     def __init__(self, args, metadata):
         self.args = args
 
-        self.model = MODEL_CLASSES[args.model]
+        # model is the overall model while plm is the base plm used in the model
+        self.model = MODEL_CLASSES[args.model](args,metadata)
+        if self.args.task.lower()=='classification_with_prompting':
+            self.plm = self.model.plm
+        else:
+            self.plm = self.model
+
         self.metadata = metadata
 
         if args.wandb:
@@ -15,35 +23,42 @@ class Trainer:
 
         self.device = torch.device('cuda' if args.cuda else 'cpu')
     
-    def train(self, train_dataset):
-        if self.args.tune_plm: # normally we freeze the model when using soft_template. However, we keep the option to tune plm
-            no_decay = ['bias', 'LayerNorm.weight'] # it's always good practice to set no decay to biase and LayerNorm parameters
+    def train(self, train_dataloader):
+        args = self.args
+
+        # Whether to tune finetune the model/non-prompting parameters:
+        if args.task.lower()=='classification' or args.tune_plm:
+            no_decay = ['bias', 'LayerNorm.weight'] # settting no decay to biase and LayerNorm parameters according to openprompt sample script
             optimizer_grouped_parameters1 = [
-                {'params': [p for n, p in prompt_model.plm.named_parameters() if (not any(nd in n for nd in no_decay))], 'weight_decay': 0.01},
-                {'params': [p for n, p in prompt_model.plm.named_parameters() if any(nd in n for nd in no_decay)], 'weight_decay': 0.0}
+                {'params': [p for n, p in self.plm.named_parameters() if (not any(nd in n for nd in no_decay))], 'weight_decay': args.weight_decay},
+                {'params': [p for n, p in self.plm.named_parameters() if any(nd in n for nd in no_decay)], 'weight_decay': 0.0}
             ]
-            optimizer1 = AdamW(optimizer_grouped_parameters1, lr=3e-5)
-            scheduler1 = get_linear_schedule_with_warmup(
-                optimizer1, 
-                num_warmup_steps=500, num_training_steps=tot_step)
+            if args.optimizer_plm.lower()=='adamw':
+                optimizer1 = AdamW(optimizer_grouped_parameters1, lr=args.plm_lr)
+                scheduler1 = get_linear_schedule_with_warmup(
+                    optimizer1, 
+                    num_warmup_steps=args.warmup_steps_plm, num_training_steps=warmup_tot_steps)
+            else:
+                print("Incorrect optimizer. Optimizer may not be supported yet.")
+                exit()
         else:
             optimizer1 = None
             scheduler1 = None
 
-
-        optimizer_grouped_parameters2 = [{'params': [p for name, p in prompt_model.template.named_parameters() if 'raw_embedding' not in name]}] # note that you have to remove the raw_embedding manually from the optimization
-        if args.optimizer.lower() == "adafactor":
-            optimizer2 = Adafactor(optimizer_grouped_parameters2,  
-                                    lr=args.prompt_lr,
-                                    relative_step=False,
-                                    scale_parameter=False,
-                                    warmup_init=False)  # when lr is 0.3, it is the same as the configuration of https://arxiv.org/abs/2104.08691
-            scheduler2 = get_constant_schedule_with_warmup(optimizer2, num_warmup_steps=args.warmup_step_prompt) # when num_warmup_steps is 0, it is the same as the configuration of https://arxiv.org/abs/2104.08691
-        elif args.optimizer.lower() == "adamw":
-            optimizer2 = AdamW(optimizer_grouped_parameters2, lr=args.prompt_lr) # usually lr = 0.5
-            scheduler2 = get_linear_schedule_with_warmup(
-                            optimizer2, 
-                            num_warmup_steps=args.warmup_step_prompt, num_training_steps=tot_step) # usually num_warmup_steps is 500
+        if args.task.lower()=='classification_with_prompting':
+            optimizer_grouped_parameters2 = [{'params': [p for name, p in self.model.template.named_parameters() if 'raw_embedding' not in name]}] # note that you have to remove the raw_embedding manually from the optimization
+            if args.optimizer_prompt.lower() == "adafactor":
+                optimizer2 = Adafactor(optimizer_grouped_parameters2,  
+                                        lr=args.prompt_lr,
+                                        relative_step=False,
+                                        scale_parameter=False,
+                                        warmup_init=False)  # when lr is 0.3, it is the same as the configuration of https://arxiv.org/abs/2104.08691
+                scheduler2 = get_constant_schedule_with_warmup(optimizer2, num_warmup_steps=args.warmup_step_prompt) # when num_warmup_steps is 0, it is the same as the configuration of https://arxiv.org/abs/2104.08691
+            elif args.optimizer_prompt.lower() == "adamw":
+                optimizer2 = AdamW(optimizer_grouped_parameters2, lr=args.prompt_lr) # usually lr = 0.5
+                scheduler2 = get_linear_schedule_with_warmup(
+                                optimizer2, 
+                                num_warmup_steps=args.warmup_step_prompt, num_training_steps=tot_step) # usually num_warmup_steps is 500
 
 
         tot_loss = 0 
