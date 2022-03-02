@@ -21,6 +21,12 @@ if __name__ == "__name__":
     parser.add_argument('--model', type='str', default='bert')
     parser.add_argument('--base_plm', type='str', default='bert-base-uncased')
     parser.add_argument("--tune_plm", type=bool, default=False)
+    parser.add_argument("--test_split", type=int, default=0.3)
+    parser.add_argument("--valid_split", type=int, default=0.3)
+    parser.add_argument('--prompt_text', type='str', default='{"soft"}{"placeholder":"text_a"}{"mask"}.')
+
+
+
 
     # hyperparams
     parser.add_argument('--learning_rate', type=float)
@@ -37,9 +43,9 @@ if __name__ == "__name__":
   
     
     set_seed(args)
-    tokenizer = load_tokenizer(args)
+    tokenizer_dictionary = load_tokenizer(args)
 
-    metadata, train_dataset, eval_dataset, test_dataset = load_and_cache_examples(args, tokenizer)
+    metadata, train_dataset, eval_dataset, test_dataset = load_and_cache_examples(args, tokenizer_dictionary)
 
     trainer = Trainer(args, metadata)
     if args.do_train:
