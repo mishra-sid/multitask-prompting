@@ -2,8 +2,7 @@ import argparse
 from email.policy import default
 from trainer import Trainer
 
-from utils import set_seed
-
+from openprompt.utils.reproduciblity import set_seed
 
 from data.data_loader import load_and_cache_examples
 from tokenizer import load_tokenizer 

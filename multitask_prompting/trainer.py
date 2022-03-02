@@ -3,6 +3,7 @@ from utils import MODEL_CLASSES
 import wandb
 import torch
 
+
 class Trainer:
     def __init__(self, args, metadata):
         self.args = args
@@ -32,18 +33,18 @@ class Trainer:
 
 
         optimizer_grouped_parameters2 = [{'params': [p for name, p in prompt_model.template.named_parameters() if 'raw_embedding' not in name]}] # note that you have to remove the raw_embedding manually from the optimization
-        if args.optimizer.lower() == "adafactor":
+        if self.args.optimizer.lower() == "adafactor":
             optimizer2 = Adafactor(optimizer_grouped_parameters2,  
-                                    lr=args.prompt_lr,
+                                    lr=self.args.prompt_lr,
                                     relative_step=False,
                                     scale_parameter=False,
                                     warmup_init=False)  # when lr is 0.3, it is the same as the configuration of https://arxiv.org/abs/2104.08691
-            scheduler2 = get_constant_schedule_with_warmup(optimizer2, num_warmup_steps=args.warmup_step_prompt) # when num_warmup_steps is 0, it is the same as the configuration of https://arxiv.org/abs/2104.08691
-        elif args.optimizer.lower() == "adamw":
-            optimizer2 = AdamW(optimizer_grouped_parameters2, lr=args.prompt_lr) # usually lr = 0.5
+            scheduler2 = get_constant_schedule_with_warmup(optimizer2, num_warmup_steps=self.args.warmup_step_prompt) # when num_warmup_steps is 0, it is the same as the configuration of https://arxiv.org/abs/2104.08691
+        elif self.args.optimizer.lower() == "adamw":
+            optimizer2 = AdamW(optimizer_grouped_parameters2, lr=self.args.prompt_lr) # usually lr = 0.5
             scheduler2 = get_linear_schedule_with_warmup(
                             optimizer2, 
-                            num_warmup_steps=args.warmup_step_prompt, num_training_steps=tot_step) # usually num_warmup_steps is 500
+                            num_warmup_steps=self.args.warmup_step_prompt, num_training_steps=) # usually num_warmup_steps is 500
 
 
         tot_loss = 0 

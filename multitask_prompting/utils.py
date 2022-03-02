@@ -5,7 +5,3 @@ MODEL_CLASSES = {
     'bert': BERT,
     'warp': WARP, 
 }
-
-
-def set_seed(seed):
-    pass
