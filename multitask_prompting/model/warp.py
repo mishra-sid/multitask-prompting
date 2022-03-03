@@ -3,9 +3,14 @@ from openprompt import PromptForClassification
 from openprompt.prompts import SoftVerbalizer, MixedTemplate
 
 class WARP(nn.Module):
-    def __init__(self, args, plm, tune_plm, metadata): 
+    def __init__(self, args, plm, metadata, tokenizer, model_config, wrapper_class): 
+        super(WARP, self).__init__()
         self.plm = plm
-        self.tune_plm = tune_plm
+        self.args = args
+        self.tokenizer = tokenizer
+        self.model_config = model_config
+        self.wrapper_class = wrapper_class
+        
         self.verbalizer = SoftVerbalizer(
             classes=metadata['classes'],
             plm=self.plm,
@@ -26,3 +31,5 @@ class WARP(nn.Module):
     
     def forward(self, inp):
         return self.model(inp)
+
+            

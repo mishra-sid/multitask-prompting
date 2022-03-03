@@ -1,12 +1,13 @@
-from datasets import load_dataset
+import datasets
 from openprompt import PromptDataLoader
 from openprompt.data_utils import InputExample
 
 def load_dataset(args):
-    data_set = load_dataset(args.dataset).shuffle(seed=args.seed)
+    data_set = datasets.load_dataset(args.dataset)['train'].shuffle(seed=args.seed)
     classes = data_set.features['label'].names
     data_set = data_set.rename_column("label", "labels")
-   
+    metadata = {'classes': classes}
+
     trainvalid_test_dataset = data_set.train_test_split(test_size=args.test_split)
     train_valid_dataset =trainvalid_test_dataset["train"].train_test_split(test_size=args.valid_split)
     dataset_train=[]
@@ -27,10 +28,10 @@ def load_dataset(args):
         e = InputExample(guid = i, text_a= entry['text'], label = entry['labels'])
         dataset_valid.append(e)
 
-    metadata = {'classes': classes}
+    
     return metadata, dataset_train, dataset_valid, dataset_test
 
-def get_tokenized_dataloader(train_raw_dataset, eval_raw_dataset, test_raw_dataset, tokenizer, template, verbalizer, wrapper_class):
+def get_tokenized_dataloader(train_raw_dataset, eval_raw_dataset, test_raw_dataset, tokenizer, template, wrapper_class):
     train_dataloader = PromptDataLoader(
         dataset = train_raw_dataset,
         tokenizer = tokenizer,

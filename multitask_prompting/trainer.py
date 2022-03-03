@@ -1,8 +1,8 @@
 
 import wandb
 import torch
-from transformers import  AdamW, Adafactor, get_linear_schedule_with_warmup,get_constant_schedule_with_warmup , 
-import tqdm
+from transformers import  AdamW, Adafactor, get_linear_schedule_with_warmup,get_constant_schedule_with_warmup
+from tqdm import tqdm
 import time
 class Trainer:
     def __init__(self, args, model):
@@ -13,18 +13,19 @@ class Trainer:
             wandb.init(project_name=args.project_name)
 
         self.device = torch.device('cuda' if args.cuda else 'cpu')
+        self.model.to(self.device)
     
     def train(self, train_dataloader, valid_dataloader):
         if self.args.tune_plm: # normally we freeze the model when using soft_template. However, we keep the option to tune plm
             no_decay = ['bias', 'LayerNorm.weight'] # it's always good practice to set no decay to biase and LayerNorm parameters
             optimizer_grouped_parameters1 = [
-                {'params': [p for n, p in self.model.plm.named_parameters() if (not any(nd in n for nd in no_decay))], 'weight_decay': 0.01},
+                {'params': [p for n, p in self.model.plm.named_parameters() if (not any(nd in n for nd in no_decay))], 'weight_decay': self.args.weight_decay},
                 {'params': [p for n, p in self.model.plm.named_parameters() if any(nd in n for nd in no_decay)], 'weight_decay': 0.0}
             ]
-            optimizer1 = AdamW(optimizer_grouped_parameters1, lr=3e-5)
+            optimizer1 = AdamW(optimizer_grouped_parameters1, lr=self.args.learning_rate)
             scheduler1 = get_linear_schedule_with_warmup(
                 optimizer1, 
-                num_warmup_steps=500, num_training_steps=self.args.num_epochs)
+                num_warmup_steps=self.args.warmup, num_training_steps=self.args.epochs)
         else:
             optimizer1 = None
             scheduler1 = None
@@ -33,16 +34,16 @@ class Trainer:
         optimizer_grouped_parameters2 = [{'params': [p for name, p in self.model.template.named_parameters() if 'raw_embedding' not in name]}] # note that you have to remove the raw_embedding manually from the optimization
         if self.args.optimizer.lower() == "adafactor":
             optimizer2 = Adafactor(optimizer_grouped_parameters2,  
-                                    lr=self.args.prompt_lr,
+                                    lr=self.args.learning_rate,
                                     relative_step=False,
                                     scale_parameter=False,
                                     warmup_init=False)  # when lr is 0.3, it is the same as the configuration of https://arxiv.org/abs/2104.08691
-            scheduler2 = get_constant_schedule_with_warmup(optimizer2, num_warmup_steps=self.args.warmup_step_prompt) # when num_warmup_steps is 0, it is the same as the configuration of https://arxiv.org/abs/2104.08691
+            scheduler2 = get_constant_schedule_with_warmup(optimizer2, num_warmup_steps=self.args.warmup) # when num_warmup_steps is 0, it is the same as the configuration of https://arxiv.org/abs/2104.08691
         elif self.args.optimizer.lower() == "adamw":
-            optimizer2 = AdamW(optimizer_grouped_parameters2, lr=self.args.prompt_lr) # usually lr = 0.5
+            optimizer2 = AdamW(optimizer_grouped_parameters2, lr=self.args.learning_rate) # usually lr = 0.5
             scheduler2 = get_linear_schedule_with_warmup(
                             optimizer2, 
-                            num_warmup_steps=self.args.warmup_step_prompt, num_training_steps=self.args.num_epochs) # usually num_warmup_steps is 500
+                            num_warmup_steps=self.args.warmup, num_training_steps=self.args.epochs) # usually num_warmup_steps is 500
 
         loss_func = torch.nn.CrossEntropyLoss()
 
@@ -58,8 +59,8 @@ class Trainer:
         pbar_update_freq = 10
         self.model.train()
 
-        pbar = tqdm(total=self.args.num_epochs, desc="Train")
-        for epoch in range(self.args.num_epochs):
+        pbar = tqdm(total=self.args.epochs, desc="Train")
+        for epoch in range(self.args.epochs):
             print(f"Begin epoch {epoch}")
             for step, inputs in enumerate(train_dataloader):
                 inputs = inputs.to(self.device)
@@ -94,8 +95,8 @@ class Trainer:
 
                 tot_train_time += time.time()
 
-                if actual_step % self.args.gradient_accumulation_steps == 0 and glb_step >0 and glb_step % self.args.eval_every_steps == 0:
-                    val_acc = self.evaluate(valid_dataloader, desc="Validation")
+                if actual_step % self.args.gradient_accumulation_steps == 0 and glb_step >0 and glb_step % self.args.eval_every == 0:
+                    val_acc = self.evaluate(valid_dataloader)
                     if val_acc >= best_val_acc:
                         # TODO Model saving code here if wandb is not already taking care of it
                         # torch.save(prompt_model.state_dict(),f"{args.project_root}/../ckpts/{this_run_unicode}.ckpt")
@@ -124,8 +125,7 @@ class Trainer:
         alllabels = []
     
         for step, inputs in enumerate(dataloader):
-            if self.args.use_cuda:
-                inputs = inputs.cuda()
+            inputs = inputs.to(self.device)
             logits = self.model(inputs)
             labels = inputs['label']
             alllabels.extend(labels.cpu().tolist())
