@@ -5,7 +5,7 @@ To install, in the root directory do:
 
 ```
 conda env create -f environment.yml
-conda activate softprompting
+conda activate multitask-prompting-env
 pip install -e .
 ```
 
