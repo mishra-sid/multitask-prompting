@@ -1,4 +1,3 @@
-
 import wandb
 import torch
 from transformers import  AdamW, Adafactor, get_linear_schedule_with_warmup,get_constant_schedule_with_warmup
@@ -56,12 +55,13 @@ class Trainer:
 
         acc_traces = []
         tot_train_time = 0
-        pbar_update_freq = 10
         self.model.train()
-
-        pbar = tqdm(total=self.args.epochs, desc="Train")
+    
+        pbar = tqdm(total=self.args.epochs, desc="Train epochs")
+        pbar_update_freq = 10
         for epoch in range(self.args.epochs):
-            print(f"Begin epoch {epoch}")
+            # print(f"Begin epoch {epoch}")
+            ebar = tqdm(total=len(train_dataloader), desc="Epoch progress")
             for step, inputs in enumerate(train_dataloader):
                 inputs = inputs.to(self.device)
                 tot_train_time -= time.time()
@@ -77,7 +77,7 @@ class Trainer:
                     glb_step += 1
                     if glb_step % pbar_update_freq == 0:
                         aveloss = (tot_loss - log_loss)/pbar_update_freq
-                        pbar.update(10)
+                        # pbar.update(10)
                         pbar.set_postfix({'loss': aveloss})
                         log_loss = tot_loss
 
@@ -94,6 +94,7 @@ class Trainer:
                     scheduler2.step()
 
                 tot_train_time += time.time()
+                ebar.update(1)
 
                 if actual_step % self.args.gradient_accumulation_steps == 0 and glb_step >0 and glb_step % self.args.eval_every == 0:
                     val_acc = self.evaluate(valid_dataloader)
@@ -111,13 +112,14 @@ class Trainer:
                     
                     print("Glb_step {}, val_acc {}, average time {}".format(glb_step, val_acc, tot_train_time/actual_step ), flush=True)
                     self.model.train()
-
-                if glb_step > self.args.max_steps:
-                    leave_training = True
-                    break
-            
-            if leave_training:
-                break 
+            ebar.close()
+            pbar.update(1)
+                # if glb_step > self.args.max_steps:
+                #     leave_training = True
+                #     break
+        pbar.close()
+            # if leave_training:
+            #     break 
     
     def evaluate(self, dataloader):
         self.model.eval()
