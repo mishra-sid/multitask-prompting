@@ -40,9 +40,9 @@ class Trainer:
             scheduler2 = get_constant_schedule_with_warmup(optimizer2, num_warmup_steps=self.args.warmup) # when num_warmup_steps is 0, it is the same as the configuration of https://arxiv.org/abs/2104.08691
         elif self.args.optimizer.lower() == "adamw":
             optimizer2 = AdamW(optimizer_grouped_parameters2, lr=self.args.learning_rate) # usually lr = 0.5
-            scheduler2 = get_linear_schedule_with_warmup(
+            scheduler2 = get_constant_schedule_with_warmup(
                             optimizer2, 
-                            num_warmup_steps=self.args.warmup, num_training_steps=self.args.epochs) # usually num_warmup_steps is 500
+                            num_warmup_steps=self.args.warmup) # usually num_warmup_steps is 500
 
         loss_func = torch.nn.CrossEntropyLoss()
 
