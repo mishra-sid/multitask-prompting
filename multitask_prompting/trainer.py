@@ -9,7 +9,7 @@ class Trainer:
         self.model = model
 
         if args.wandb:
-            wandb.init(project=args.project_name)
+            wandb.init(project=args.project_name, config = args)
 
         self.device = torch.device('cuda' if args.cuda else 'cpu')
         self.model.to(self.device)
