@@ -30,7 +30,10 @@ class Trainer:
             scheduler1 = None
 
 
-        optimizer_grouped_parameters2 = [{'params': [p for name, p in self.model.template.named_parameters() if 'raw_embedding' not in name]}] # note that you have to remove the raw_embedding manually from the optimization
+        optimizer_grouped_parameters2 
+        = [ {'params': [p for name, p in self.model.template.named_parameters() if 'raw_embedding' not in name]},
+            {'params': prompt_model.verbalizer.group_parameters_1},
+            {'params': prompt_model.verbalizer.group_parameters_2}] # note that you have to remove the raw_embedding manually from the optimization
         if self.args.optimizer.lower() == "adafactor":
             optimizer2 = Adafactor(optimizer_grouped_parameters2,  
                                     lr=self.args.learning_rate,
