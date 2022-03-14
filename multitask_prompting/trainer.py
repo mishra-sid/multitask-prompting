@@ -22,9 +22,9 @@ class Trainer:
                 {'params': [p for n, p in self.model.plm.named_parameters() if any(nd in n for nd in no_decay)], 'weight_decay': 0.0}
             ]
             optimizer1 = AdamW(optimizer_grouped_parameters1, lr=self.args.learning_rate)
-            scheduler1 = get_linear_schedule_with_warmup(
+            scheduler1 = get_constant_schedule_with_warmup(
                 optimizer1, 
-                num_warmup_steps=self.args.warmup, num_training_steps=self.args.epochs)
+                num_warmup_steps=self.args.warmup)
         else:
             optimizer1 = None
             scheduler1 = None
