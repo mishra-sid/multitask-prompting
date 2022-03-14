@@ -79,6 +79,12 @@ class Trainer:
                         aveloss = (tot_loss - log_loss)/pbar_update_freq
                         # pbar.update(10)
                         pbar.set_postfix({'loss': aveloss})
+
+                        metrics = {"average_loss_10_steps": aveloss}
+                    
+                        if self.args.wandb:
+                            wandb.log(metrics)
+
                         log_loss = tot_loss
 
                 
@@ -110,8 +116,8 @@ class Trainer:
                     if self.args.wandb:
                         wandb.log(metrics)
                     
-                    tqdm.print("Glb_step {}, val_acc {}, average time {}".format(glb_step, val_acc, tot_train_time/actual_step ))
-                    tqdm.print('\n')
+                    tqdm.write("Glb_step {}, val_acc {}, average time {}".format(glb_step, val_acc, tot_train_time/actual_step ))
+                    tqdm.write('\n')
                     self.model.train()
             ebar.close()
             pbar.update(1)
