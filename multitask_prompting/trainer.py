@@ -116,8 +116,7 @@ class Trainer:
                     if self.args.wandb:
                         wandb.log(metrics)
                     
-                    tqdm.write("Glb_step {}, val_acc {}, average time {}".format(glb_step, val_acc, tot_train_time/actual_step ))
-                    tqdm.write('\n')
+                    tqdm.write(f'Glb_step {glb_step}, val_acc {val_acc}, average time {tot_train_time/actual_step}')
                     self.model.train()
             ebar.close()
             pbar.update(1)
