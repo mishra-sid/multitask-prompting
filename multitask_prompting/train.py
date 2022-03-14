@@ -61,4 +61,4 @@ def main():
         trainer.train(train_dataloader, valid_dataloader)
     
     if args.do_eval:
-        trainer.eval(test_dataloader)
+        trainer.evaluate(test_dataloader)
