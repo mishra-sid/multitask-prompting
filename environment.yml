@@ -8,7 +8,7 @@ dependencies:
   - pip
   - pytorch=1.10.2
   - pip:
-    - transformers=4.16.2
-    - datasets=1.18.3
-    - wandb=0.12.10
-    - PyYAML=6.0
+    - transformers==4.16.2
+    - datasets==1.18.3
+    - wandb==0.12.10
+    - PyYAML==6.0
