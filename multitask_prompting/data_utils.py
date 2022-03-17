@@ -1,6 +1,7 @@
 import datasets
 from openprompt import PromptDataLoader
 from openprompt.data_utils import InputExample
+from pathlib import Path
 
 def load_dataset(args):
     data_set = datasets.load_dataset(args.dataset)['train'].shuffle(seed=args.seed)

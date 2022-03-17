@@ -17,11 +17,12 @@ def main():
     parser.add_argument('--wandb', type=bool, default=False)
     parser.add_argument('--project_name', type=str, default='multitask_prompting')
     parser.add_argument('--cuda', type=bool, default=True)
-    parser.add_argument("--seed", type=int, default=1234)
+    parser.add_argument("--seed", type=int, default=42)
     
     # args
     parser.add_argument('--task', type=str, default='classification')
     parser.add_argument('--dataset', type=str, default='nlu_evaluation_data')
+    parser.add_argument('--data_dir', type=str, default='data')
     parser.add_argument('--model', type=str, default='bert')
     parser.add_argument('--base_plm_family', type=str, default='bert')
     parser.add_argument('--base_plm_path', type=str, default='bert-base-uncased')
