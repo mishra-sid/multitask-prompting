@@ -32,25 +32,31 @@ def load_dataset(args):
     
     return metadata, dataset_train, dataset_valid, dataset_test
 
-def get_tokenized_dataloader(train_raw_dataset, eval_raw_dataset, test_raw_dataset, tokenizer, template, wrapper_class):
+def get_tokenized_dataloader(args, train_raw_dataset, eval_raw_dataset, test_raw_dataset, tokenizer, template, wrapper_class):
     train_dataloader = PromptDataLoader(
         dataset = train_raw_dataset,
         tokenizer = tokenizer,
         template = template,
-        tokenizer_wrapper_class=wrapper_class
+        tokenizer_wrapper_class=wrapper_class,
+        max_seq_length=args.max_seq_length,
+        batch_size=args.batch_size
     )
 
     eval_dataloader = PromptDataLoader(
         dataset = eval_raw_dataset,
         tokenizer = tokenizer,
         template = template,
-        tokenizer_wrapper_class=wrapper_class
+        tokenizer_wrapper_class=wrapper_class,
+        max_seq_length=args.max_seq_length,
+        batch_size=args.batch_size
     )
     test_dataloader = PromptDataLoader(
         dataset = test_raw_dataset,
         tokenizer = tokenizer,
         template = template,
-        tokenizer_wrapper_class=wrapper_class
+        tokenizer_wrapper_class=wrapper_class,
+        max_seq_length=args.max_seq_length,
+        batch_size=args.batch_size
     )
 
     return train_dataloader, eval_dataloader, test_dataloader
