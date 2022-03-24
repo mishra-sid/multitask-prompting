@@ -31,8 +31,8 @@ def main():
     parser.add_argument("--tune_plm", type=bool, default=False)
     parser.add_argument("--test_split", type=float, default=0.3)
     parser.add_argument("--valid_split", type=float, default=0.3)
-    parser.add_argument('--prompt_text', type=str, default='{"soft": None, "duplicate": 1}{"placeholder":"text_a"}{"mask"}.')
-    parser.add_argument("--verbalizer_init", type=str, default = None)
+    parser.add_argument('--prompt_text', type=str, default='{"soft": None, "duplicate": 20}{"placeholder":"text_a"}{"mask"}.')
+    parser.add_argument("--verbalizer_init", type=str, default ="{'alarm_query': 'alarm', 'alarm_remove': 'alarm', 'alarm_set': 'alarm', 'audio_volume_down': 'audio', 'audio_volume_mute': 'audio', 'audio_volume_other': 'audio', 'audio_volume_up': 'audio', 'calendar_query': 'calendar', 'calendar_remove': 'calendar', 'calendar_set': 'calendar', 'cooking_query': 'cooking', 'cooking_recipe': 'cooking', 'datetime_convert': 'datetime', 'datetime_query': 'datetime', 'email_addcontact': 'email', 'email_query': 'email', 'email_querycontact': 'email', 'email_sendemail': 'email', 'general_affirm': 'general', 'general_commandstop': 'general', 'general_confirm': 'general', 'general_dontcare': 'general', 'general_explain': 'general', 'general_greet': 'general', 'general_joke': 'general', 'general_negate': 'general', 'general_praise': 'general', 'general_quirky': 'general', 'general_repeat': 'general', 'iot_cleaning': 'iot', 'iot_coffee': 'iot', 'iot_hue_lightchange': 'iot', 'iot_hue_lightdim': 'iot', 'iot_hue_lightoff': 'iot', 'iot_hue_lighton': 'iot', 'iot_hue_lightup': 'iot', 'iot_wemo_off': 'iot', 'iot_wemo_on': 'iot', 'lists_createoradd': 'lists', 'lists_query': 'lists', 'lists_remove': 'lists', 'music_dislikeness': 'music', 'music_likeness': 'music', 'music_query': 'music', 'music_settings': 'music', 'news_query': 'news', 'play_audiobook': 'play', 'play_game': 'play', 'play_music': 'play', 'play_podcasts': 'play', 'play_radio': 'play', 'qa_currency': 'qa', 'qa_definition': 'qa', 'qa_factoid': 'qa', 'qa_maths': 'qa', 'qa_stock': 'qa', 'recommendation_events': 'recommendation', 'recommendation_locations': 'recommendation', 'recommendation_movies': 'recommendation', 'social_post': 'social', 'social_query': 'social', 'takeaway_order': 'takeaway', 'takeaway_query': 'takeaway', 'transport_query': 'transport', 'transport_taxi': 'transport', 'transport_ticket': 'transport', 'transport_traffic': 'transport', 'weather_query': 'weather'}")
     parser.add_argument("--max_seq_length", type=int, default=64)
     
     # hyperparams
@@ -64,3 +64,4 @@ def main():
     
     if args.do_eval:
         trainer.test(args, model, test_dataloader)
+
