@@ -1,7 +1,7 @@
 from torch import nn
 from openprompt import PromptForClassification
 from openprompt.prompts import SoftVerbalizer, MixedTemplate
-import json
+import ast
 
 class WARP(nn.Module):
     def __init__(self, args, plm, metadata, tokenizer, model_config, wrapper_class): 
@@ -14,7 +14,7 @@ class WARP(nn.Module):
         self.label_words = None
 
         if self.args.verbalizer_init != None:
-            self.label_words = json.load(self.args.verbalizer_init)
+            self.label_words = ast.literal_eval(self.args.verbalizer_init)
 
 
         self.verbalizer = SoftVerbalizer(
