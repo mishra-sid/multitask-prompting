@@ -1,10 +1,11 @@
+
 from torch import nn
 from openprompt import PromptForClassification
 from openprompt.prompts import SoftVerbalizer, MixedTemplate
 import ast
 
 class WARP(nn.Module):
-    def __init__(self, args, plm, metadata, tokenizer, model_config, wrapper_class): 
+    def __init__(self, args, plm, metadata, tokenizer, model_config, wrapper_class):
         super(WARP, self).__init__()
         self.plm = plm
         self.args = args
@@ -35,8 +36,9 @@ class WARP(nn.Module):
             plm = self.plm,
             verbalizer = self.verbalizer
         )
-    
+
     def forward(self, inp):
         return self.model(inp)
 
-            
+
+
