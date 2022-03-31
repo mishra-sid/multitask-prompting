@@ -18,7 +18,7 @@ class Trainer:
         self.device = torch.device(args.device)
         self.model.to(self.device)
     
-    def train(self, train_dataloader, valid_dataloader):
+    def train(self, train_dataloader, valid_dataloader, test_dataloader):
         num_training_steps = len(train_dataloader) * self.args.epochs
         if self.args.tune_plm: # normally we freeze the model when using soft_template. However, we keep the option to tune plm
             no_decay = ['bias', 'LayerNorm.weight'] # it's always good practice to set no decay to biase and LayerNorm parameters
@@ -51,8 +51,9 @@ class Trainer:
         loss_func = torch.nn.CrossEntropyLoss()
 
         best_val_acc = 0
-        
-        acc_traces = []
+        curr_test_loss = 0
+        curr_test_acc = 0
+
         tot_train_time = 0
         self.model.train()
         progress_bar = tqdm(range(num_training_steps))
@@ -80,24 +81,34 @@ class Trainer:
                 del inputs
             
             tot_train_time += time.time()
+            uniq = utils.get_uniq_str(self.args)
+            save_path_dir = Path(self.args.model_dir) / uniq
+            save_path_dir.mkdir(parents=True, exist_ok=True)
             
             val_loss, val_acc = self.evaluate(valid_dataloader)
             if val_acc >= best_val_acc:
                 best_val_acc = val_acc
-                info = { "params": utils.get_num_trainable_params(self.args, self.model), "val_acc": val_acc}
-                uniq = utils.get_uniq_str(self.args)
-                save_path_dir = Path(self.args.model_dir) / uniq
-                save_path_dir.mkdir(parents=True, exist_ok=True)
-                with open(save_path_dir / "info.json", 'w') as wf:
-                    json.dump(info, wf)
+                curr_test_loss, curr_test_acc = self.evaluate(test_dataloader)    
                 torch.save(self.model.state_dict(), save_path_dir / "model.pth")
-                
-            acc_traces.append(val_acc)
 
-            metrics = {"validation_loss": val_loss, "validation_accuracy": val_acc}
-            print("epoch", epoch, "metrics", metrics) 
+            info_path = save_path_dir / "info.json"
+            info = None
+            if info_path.exists():
+                with open(info_path) as f:
+                    info = json.load(f)
+            else:
+                info = { "params": utils.get_num_trainable_params(self.args, self.model), "metrics": []}
+            
+            metric = {'epoch': epoch + 1, 'val_acc': val_acc, 'test_acc': curr_test_acc}
+            info["metrics"].append(metric) 
+            
+            with open(info_path, 'w') as wf:
+                json.dump(info, wf)
+            
+            wandb_metrics = {"validation_loss": val_loss, "validation_accuracy": val_acc}
+            print("epoch", epoch, "metrics", wandb_metrics) 
             if self.args.wandb:
-                wandb.log(metrics)
+                wandb.log(wandb_metrics)
             self.model.train()
     
     def evaluate(self, dataloader):

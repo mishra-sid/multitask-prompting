@@ -60,7 +60,4 @@ def main():
 
     trainer = Trainer(args, model)
     if args.do_train:
-        trainer.train(train_dataloader, valid_dataloader)
-    
-    if args.do_eval:
-        trainer.test(args, model, test_dataloader)
+        trainer.train(train_dataloader, valid_dataloader, test_dataloader)

@@ -1,5 +1,6 @@
 models/
 outputs/
+bin_out/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
