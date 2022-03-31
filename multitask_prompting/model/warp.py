@@ -14,7 +14,7 @@ class WARP(nn.Module):
         self.verbalizer = SoftVerbalizer(
             classes=metadata['classes'],
             label_words=metadata['label_words'],
-            plm=self.plm,
+            model=self.plm,
             tokenizer = self.tokenizer
         )
 

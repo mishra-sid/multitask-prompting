@@ -9,6 +9,10 @@ args = [
     ['--base_plm_family bert', '--base_plm_path bert-base-cased', '--verbalizer_init random', '--prompt_text \'{"soft": None, "duplicate": 20}{"placeholder":"text_a"}{"mask"}\''],
     ['--base_plm_family roberta', '--base_plm_path roberta-large', '--verbalizer_init random', '--prompt_text \'{"soft": None, "duplicate": 1}{"placeholder":"text_a"}{"mask"}\''],
     ['--base_plm_family roberta', '--base_plm_path roberta-large', '--verbalizer_init random', '--prompt_text \'{"soft": None, "duplicate": 20}{"placeholder":"text_a"}{"mask"}\''],
+    ['--base_plm_family roberta', '--base_plm_path roberta-large', '--verbalizer_init first', '--prompt_text \'{"soft": None, "duplicate": 20}{"placeholder":"text_a"}{"mask"}\''],
+    ['--base_plm_family roberta', '--base_plm_path roberta-large', '--verbalizer_init last', '--prompt_text \'{"soft": None, "duplicate": 20}{"placeholder":"text_a"}{"mask"}\''],
+    ['--base_plm_family roberta', '--base_plm_path roberta-large', '--verbalizer_init raw', '--prompt_text \'{"soft": None, "duplicate": 20}{"placeholder":"text_a"}{"mask"}\''],
+
 ]
 
 if __name__ == "__main__":
