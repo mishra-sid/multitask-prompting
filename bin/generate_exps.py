@@ -22,11 +22,10 @@ if __name__ == "__main__":
 #SBATCH -o {slurm_path}/logs_{unique_id}.out
 #SBATCH -e {slurm_path}/logs_{unique_id}.err
 #SBATCH --time=0-4:00:00
-#SBATCH --partition=1080ti-short
+#SBATCH --partition=2080ti-short
 #SBATCH --gres=gpu:1
 #SBATCH --cpus-per-task=1
 #SBATCH --mem=16GB
-#SBATCH --exclude=node030
 
 . {conda_path}
 conda activate multitask-prompting
