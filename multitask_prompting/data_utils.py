@@ -9,6 +9,15 @@ def load_dataset(args):
     data_set = data_set.rename_column("label", "labels")
     metadata = {'classes': classes}
 
+    if args.verbalizer_init == 'random':
+        metadata['label_words'] = None
+    elif args.verbalizer_init == "raw":
+        metadata['label_words'] = {l: l for l in classes}
+    elif args.verbalizer_init == "first":
+        metadata['label_words'] = {l: l.split("_")[0] for l in classes}
+    elif args.verbalizer_init == "last":
+        metadata['label_words'] = {l: l.split("_")[-1] for l in classes}
+
     trainvalid_test_dataset = data_set.train_test_split(test_size=args.test_split)
     train_valid_dataset =trainvalid_test_dataset["train"].train_test_split(test_size=args.valid_split)
     dataset_train=[]

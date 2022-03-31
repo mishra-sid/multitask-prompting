@@ -33,7 +33,10 @@ class Trainer:
             scheduler1 = None
 
         if self.args.model_type == "prompt":
-            optimizer_grouped_parameters2 = [ {'params': [p for name, p in self.model.template.named_parameters() if 'raw_embedding' not in name]},{'params': self.model.verbalizer.group_parameters_1},{'params': self.model.verbalizer.group_parameters_2}]
+            if self.args.tune_plm:
+                optimizer_grouped_parameters2 = [ {'params': [p for name, p in self.model.template.named_parameters() if 'raw_embedding' not in name]},{'params': self.model.verbalizer.group_parameters_1},{'params': self.model.verbalizer.group_parameters_2}]
+            else:
+                optimizer_grouped_parameters2 = [ {'params': [p for name, p in self.model.template.named_parameters() if 'raw_embedding' not in name]},{'params': self.model.verbalizer.group_parameters_2}]
             if self.args.optimizer.lower() == "adafactor":
                 optimizer2 = Adafactor(optimizer_grouped_parameters2,  
                                         lr=self.args.prompt_learning_rate,

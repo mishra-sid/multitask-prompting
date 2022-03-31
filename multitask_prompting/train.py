@@ -24,14 +24,15 @@ def main():
     parser.add_argument('--task', type=str, default='classification')
     parser.add_argument('--dataset', type=str, default='nlu_evaluation_data')
     parser.add_argument('--data_dir', type=str, default='data')
-    parser.add_argument('--model', type=str, default='bert')
-    parser.add_argument('--model_type', type=str, default='fine_tuning')
+    parser.add_argument('--model', type=str, default='warp')
+    parser.add_argument('--model_type', type=str, default='prompt')
     parser.add_argument('--base_plm_family', type=str, default='bert')
     parser.add_argument('--base_plm_path', type=str, default='bert-base-uncased')
     parser.add_argument("--tune_plm", type=bool, default=False)
     parser.add_argument("--test_split", type=float, default=0.3)
     parser.add_argument("--valid_split", type=float, default=0.3)
-    parser.add_argument('--prompt_text', type=str, default='{"soft": None, "duplicate": 1}{"placeholder":"text_a"}{"mask"}.')
+    parser.add_argument('--prompt_text', type=str, default='{"soft": None, "duplicate": 20}{"placeholder":"text_a"}{"mask"}.')
+    parser.add_argument('--verbalizer_init', type=str, default='raw', choices=['random', 'raw', 'first', 'last'])
     parser.add_argument("--max_seq_length", type=int, default=64)
     
     # hyperparams

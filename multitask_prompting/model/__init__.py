@@ -1,9 +1,9 @@
-from multitask_prompting.model.bert import BERT
+from multitask_prompting.model.mlm import MLM
 from multitask_prompting.model.warp import WARP
 
 MODEL_CLASSES = {
     'classification': {
-        'bert': BERT,
+        'mlm': MLM,
         'warp': WARP, 
     }
 }
