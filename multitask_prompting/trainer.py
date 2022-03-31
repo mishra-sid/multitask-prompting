@@ -55,6 +55,7 @@ class Trainer:
         progress_bar = tqdm(range(num_training_steps))
  
         for epoch in range(self.args.epochs):
+            train_loss = 0
             for step, inputs in enumerate(train_dataloader):
                 inputs = inputs.to(self.device)
                 tot_train_time -= time.time()
@@ -62,8 +63,9 @@ class Trainer:
                 labels = inputs['label']
                 loss = loss_func(logits, labels)
                 loss.backward()
+                train_loss += loss.item()
                 if self.args.wandb:
-                    wandb.log({'train_loss_per_batch': loss.item()})
+                    wandb.log({"train_loss_per_batch": loss.item()})
                 progress_bar.update(1)
                 if optimizer1 is not None:
                     optimizer1.step()
@@ -92,7 +94,7 @@ class Trainer:
                 
             acc_traces.append(val_acc)
 
-            metrics = {"validation_loss": val_loss, "validation_accuracy": val_acc}
+            metrics = {"validation_loss": val_loss, "validation_accuracy": val_acc,"epoch_train_loss_avg":train_loss/len(train_dataloader)}
             print("epoch", epoch, "metrics", metrics) 
             if self.args.wandb:
                 wandb.log(metrics)
