@@ -32,7 +32,7 @@ def main():
     parser.add_argument("--test_split", type=float, default=0.3)
     parser.add_argument("--valid_split", type=float, default=0.3)
     parser.add_argument('--prompt_text', type=str, default='{"soft": None, "duplicate": 20}{"placeholder":"text_a"}{"mask"}.')
-    parser.add_argument('--verbalizer_init', type=str, default='raw', choices=['random', 'raw', 'first', 'last'])
+    parser.add_argument('--verbalizer_init', type=str, default='random', choices=['random', 'raw', 'first', 'last'])
     parser.add_argument("--max_seq_length", type=int, default=64)
     
     # hyperparams
