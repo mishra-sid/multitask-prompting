@@ -62,7 +62,8 @@ class Trainer:
                 labels = inputs['label']
                 loss = loss_func(logits, labels)
                 loss.backward()
-                
+                if self.args.wandb:
+                    wandb.log({'train_loss_per_batch': loss.item()})
                 progress_bar.update(1)
                 if optimizer1 is not None:
                     optimizer1.step()
