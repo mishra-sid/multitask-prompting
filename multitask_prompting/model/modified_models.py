@@ -12,7 +12,7 @@ class SoftVerbalizerPLMedInit(SoftVerbalizer):
                  prefix: Optional[str] = " ",
                  multi_token_handler: Optional[str] = "first",
                 ):
-        super()._init_(tokenizer=tokenizer, num_classes=num_classes, classes=classes,model=model,classes = classes, label_words=label_words,prefix=prefix,multi_token_handler=multi_token_handler)
+        super()._init_(tokenizer=tokenizer, num_classes=num_classes, classes=classes,model=model, label_words=label_words,prefix=prefix,multi_token_handler=multi_token_handler)
         print("SoftVerbalizerPLMedInit called")
 
     def generate_parameters(self) -> List:
