@@ -60,7 +60,7 @@ class SoftVerbalizerPLMedInit(SoftVerbalizer):
         self.label_words_mask = nn.Parameter(words_ids_mask, requires_grad=False)
 
         # init_data = self.original_head_last_layer[self.label_words_ids,:]*self.label_words_mask.to(self.original_head_last_layer.dtype).unsqueeze(-1)
-        init_data = self.plm(self.label_words_ids,self.label_words_mask, output_hidden_states = True).hidden_states[-1]*self.label_words_mask.to(self.original_head_last_layer.dtype).unsqueeze(-1)
+        init_data = self.model(self.label_words_ids,self.label_words_mask, output_hidden_states = True).hidden_states[-1]*self.label_words_mask.to(self.original_head_last_layer.dtype).unsqueeze(-1)
         init_data = init_data.sum(dim=1)/self.label_words_mask.sum(dim=-1,keepdim=True)
 
         # get initialization by passing label through plm
