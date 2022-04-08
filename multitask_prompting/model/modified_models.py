@@ -1,6 +1,23 @@
+from openprompt.prompts import SoftVerbalizer, MixedTemplate
+from inspect import Parameter
+import json
+from os import stat
+from transformers.file_utils import ModelOutput
+from transformers.tokenization_utils import PreTrainedTokenizer
+from transformers.utils.dummy_pt_objects import PreTrainedModel
+from yacs.config import CfgNode
+from openprompt.data_utils import InputFeatures
+import re
+from openprompt import Verbalizer
+from typing import *
 import torch
 import torch.nn as nn
-from openprompt.prompts import SoftVerbalizer, MixedTemplate
+import torch.nn.functional as F
+from openprompt.utils.logging import logger
+import copy
+from transformers.modeling_outputs import CausalLMOutputWithCrossAttentions, Seq2SeqLMOutput, MaskedLMOutput
+
+from transformers.models.t5 import  T5ForConditionalGeneration
 
 class SoftVerbalizerPLMedInit(SoftVerbalizer):
     def __init__(self,
@@ -12,7 +29,7 @@ class SoftVerbalizerPLMedInit(SoftVerbalizer):
                  prefix: Optional[str] = " ",
                  multi_token_handler: Optional[str] = "first",
                 ):
-        super()._init_(tokenizer=tokenizer, num_classes=num_classes, classes=classes,model=model, label_words=label_words,prefix=prefix,multi_token_handler=multi_token_handler)
+        super().__init__(tokenizer=tokenizer, num_classes=num_classes, classes=classes,model=model, label_words=label_words,prefix=prefix,multi_token_handler=multi_token_handler)
         print("SoftVerbalizerPLMedInit called")
 
     def generate_parameters(self) -> List:
