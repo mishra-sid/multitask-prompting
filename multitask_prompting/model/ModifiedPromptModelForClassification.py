@@ -22,7 +22,9 @@ from yacs.config import CfgNode
 from openprompt.utils.logging import logger
 from transformers import  AdamW, get_linear_schedule_with_warmup
 
-class ModifiedPromptForClassification(nn.Module):
+from openprompt import PromptForClassification
+
+class ModifiedPromptForClassification(PromptForClassification):
     def __init__(self,
                  plm: PreTrainedModel,
                  template: Template,
@@ -30,21 +32,49 @@ class ModifiedPromptForClassification(nn.Module):
                  freeze_plm: bool = False,
                  plm_eval_mode: bool=False
                 ):
-        super().__init__()
-        self.prompt_model = PromptModel(plm, template, freeze_plm, plm_eval_mode)
-        self.verbalizer = verbalizer
+        super().__init__(plm,template,verbalizer,freeze_plm,plm_eval_mode)
+
+    # def extract_at_mask(outputs: torch.Tensor,batch):
+    #     # print(outputs)
+    #     print("INITIAL : ",outputs.size())
+
+    #     outputs = outputs[torch.where(batch['loss_ids']>=0)]
+    #     print("INTERMEDIATE : ",outputs.size())
+
+    #     outputs = outputs.view(batch['loss_ids'].shape[0], -1, outputs.shape[1])
+    #     print("INTERMEDIATE1 : ",outputs.size())
+
+    #     # outputs = outputs.unsqueeze(1)
+    #     # print("INTERMEDIATE_2 : ",outputs.size())
+
+    #     outputs  = torch.mean(outputs,dim=1)
+
+    #     print("FINAL : ",outputs.size())
+
+    #     outputs = outputs.view(batch['loss_ids'].shape[0], -1, outputs.shape[1])
+    #     if outputs.shape[1] == 1:
+    #         outputs = outputs.view(outputs.shape[0], outputs.shape[2])
+    #     return outputs
 
 
 
-    def extract_at_avg_input_embed(outputs: torch.Tensor,batch):
-        print(outputs)
+    def extract_at_avg_input_embed(self,outputs: torch.Tensor,batch):
+        # print("ouputs shape: ", outputs.size())
 
         outputs = outputs[torch.where(batch['loss_ids']>=0)]
-        outputs = outputs.unsqueeze(1)
-        outputs  = torch.mean(outputs,dim=0)
+        # print("ouputs shape: ", outputs.size())
+
         outputs = outputs.view(batch['loss_ids'].shape[0], -1, outputs.shape[1])
-        if outputs.shape[1] == 1:
-            outputs = outputs.view(outputs.shape[0], outputs.shape[2])
+        # print("ouputs shape: ", outputs.size())
+
+        outputs  = torch.mean(outputs,dim=1)
+        # print("ouputs shape: ", outputs.size())
+
+        # outputs = outputs.view(batch['loss_ids'].shape[0], -1, outputs.shape[1])
+        # print("ouputs shape: ", outputs.size())
+
+        # if outputs.shape[1] == 1:
+        #     outputs = outputs.view(outputs.shape[0], outputs.shape[2])
         return outputs
 
     def forward(self, batch: Union[Dict, InputFeatures]) -> torch.Tensor:
