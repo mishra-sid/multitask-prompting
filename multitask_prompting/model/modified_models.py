@@ -16,7 +16,6 @@ import torch.nn.functional as F
 from openprompt.utils.logging import logger
 import copy
 from transformers.modeling_outputs import CausalLMOutputWithCrossAttentions, Seq2SeqLMOutput, MaskedLMOutput
-
 from transformers.models.t5 import  T5ForConditionalGeneration
 
 class SoftVerbalizerPLMedInit(SoftVerbalizer):
@@ -29,8 +28,44 @@ class SoftVerbalizerPLMedInit(SoftVerbalizer):
                  prefix: Optional[str] = " ",
                  multi_token_handler: Optional[str] = "first",
                 ):
-        super().__init__(tokenizer=tokenizer, num_classes=num_classes, classes=classes,model=model, label_words=label_words,prefix=prefix,multi_token_handler=multi_token_handler)
+        
         print("SoftVerbalizerPLMedInit called")
+        super(SoftVerbalizer, self).__init__(tokenizer=tokenizer, num_classes=num_classes, classes=classes)
+        self.prefix = prefix
+        self.multi_token_handler = multi_token_handler
+        self.model = model 
+        head_name = [n for n,c in model.named_children()][-1]
+        logger.info(f"The LM head named {head_name} was retrieved.")
+        self.head = copy.deepcopy(getattr(model, head_name))
+        max_loop = 5
+        if not isinstance(self.head, torch.nn.Linear):
+            module = self.head
+            found = False
+            last_layer_full_name = []
+            for i in range(max_loop):
+                last_layer_name = [n for n,c in module.named_children()][-1]
+                last_layer_full_name.append(last_layer_name)
+                parent_module = module
+                module = getattr(module, last_layer_name)
+                if isinstance(module, torch.nn.Linear):
+                    found = True
+                    break
+            if not found:
+                raise RuntimeError(f"Can't not retrieve a linear layer in {max_loop} loop from the plm.")
+            self.original_head_last_layer = module.weight.data
+            self.hidden_dims = self.original_head_last_layer.shape[-1]
+            self.head_last_layer_full_name = ".".join(last_layer_full_name)
+            self.head_last_layer = torch.nn.Linear(self.hidden_dims, self.num_classes, bias=False)
+            setattr(parent_module, last_layer_name, self.head_last_layer)
+        else:
+            self.hidden_dims = self.head.weight.shape[-1]
+            self.original_head_last_layer = getattr(model, head_name).weight.data
+            self.head = torch.nn.Linear(self.hidden_dims, self.num_classes, bias=False)
+
+
+        if label_words is not None: # use label words as an initialization
+            self.label_words = label_words
+
 
     def generate_parameters(self) -> List:
         r"""In basic manual template, the parameters are generated from label words directly.
@@ -76,4 +111,5 @@ class SoftVerbalizerPLMedInit(SoftVerbalizer):
             '''
             self.head_last_layer.weight.data = init_data
             self.head_last_layer.weight.data.requires_grad=True
+
 

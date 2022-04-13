@@ -81,7 +81,8 @@ class Trainer:
                 del inputs
             
             tot_train_time += time.time()
-            uniq = utils.get_uniq_str(self.args)
+            # uniq = utils.get_uniq_str(self.args)
+            uniq = "blah"
             save_path_dir = Path(self.args.model_dir) / uniq
             save_path_dir.mkdir(parents=True, exist_ok=True)
             
@@ -91,7 +92,7 @@ class Trainer:
                 curr_test_loss, curr_test_acc = self.evaluate(test_dataloader)    
                 torch.save(self.model.state_dict(), save_path_dir / "model.pth")
 
-            info_path = save_path_dir / "info.json"
+            info_path = save_path_dir / f'{self.args.verbalizer_init}_info.json'
             info = None
             if info_path.exists():
                 with open(info_path) as f:
