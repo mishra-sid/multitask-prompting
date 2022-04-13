@@ -24,7 +24,7 @@ class WARP(nn.Module):
             model = self.plm
         )
 
-        self.model = ModifiedPromptForClassification(
+        self.model = PromptForClassification(
             template = self.template,
             plm = self.plm,
             verbalizer = self.verbalizer
