@@ -99,6 +99,7 @@ class Trainer:
             else:
                 info = { "params": utils.get_num_trainable_params(self.args, self.model), "metrics": []}
             
+            wandb.save(str(info_path))
             metric = {'epoch': epoch + 1, 'val_acc': val_acc, 'test_acc': curr_test_acc}
             info["metrics"].append(metric) 
             
