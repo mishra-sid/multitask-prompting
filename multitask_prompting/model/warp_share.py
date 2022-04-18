@@ -2,9 +2,9 @@ from torch import nn
 from openprompt import PromptForClassification
 from openprompt.prompts import SoftVerbalizer, MixedTemplate
 
-class WARP(nn.Module):
+class WARPShare(nn.Module):
     def __init__(self, args, plm, metadata, tokenizer, model_config, wrapper_class): 
-        super(WARP, self).__init__()
+        super(WARPShare, self).__init__()
         self.plm = plm
         self.args = args
         self.tokenizer = tokenizer
@@ -22,22 +22,18 @@ class WARP(nn.Module):
                 model=self.plm,
                 tokenizer = self.tokenizer
             )
-            self.verbalizers[scenario] = self.verbalizers[scenario].cuda()
+
             self.templates[scenario] =  MixedTemplate(
                 tokenizer = self.tokenizer,
                 text= args.prompt_text,
                 model = self.plm
             )
-            self.templates[scenario] = self.templates[scenario].cuda()
 
             self.models[scenario] = PromptForClassification(
                 template = self.templates[scenario],
                 plm = self.plm,
                 verbalizer = self.verbalizers[scenario]
             )
-
-            self.models[scenario] = self.models[scenario].cuda()
-
-        
-    def forward(self, inp, scenario):
+    
+    def forward(self, scenario, inp):
         return self.models[scenario](inp)
