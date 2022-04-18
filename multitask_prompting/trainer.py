@@ -89,10 +89,10 @@ class Trainer:
             save_path_dir = Path(self.args.model_dir) / uniq
             save_path_dir.mkdir(parents=True, exist_ok=True)
             
-            avg_val_loss, avg_val_acc, std_val_acc = self.evaluate(dataloaders, "valid")
+            avg_val_loss, avg_val_acc, total_val_acc, std_val_acc = self.evaluate(dataloaders, "valid")
             if avg_val_acc >= best_avg_val_acc:
                 best_avg_val_acc = avg_val_acc
-                curr_test_avg_loss, curr_test_avg_acc, curr_test_std_acc = self.evaluate(dataloaders, "test")    
+                curr_test_avg_loss, curr_test_avg_acc, curr_test_total_acc, curr_test_std_acc = self.evaluate(dataloaders, "test")    
                 torch.save(self.model.state_dict(), save_path_dir / "model.pth")
 
             info_path = save_path_dir / "info.json"
@@ -103,12 +103,12 @@ class Trainer:
             else:
                 info = { "params": utils.get_num_trainable_params(self.args, self.metadata.keys(), self.model), "metrics": []}
             
-            metric = {'epoch': epoch + 1, 'val_avg_acc': avg_val_acc, 'val_avg_std': std_val_acc, 'test_avg_acc': curr_test_avg_acc, 'test_std_acc': curr_test_std_acc}
+            metric = {'epoch': epoch + 1, 'val_avg_acc': avg_val_acc,'val_total_acc': total_val_acc, 'val_avg_std': std_val_acc, 'test_avg_acc': curr_test_avg_acc, 'test_total_acc': curr_test_total_acc, 'test_std_acc': curr_test_std_acc}
             info["metrics"].append(metric) 
             
             with open(info_path, 'w') as wf:
                 json.dump(info, wf)
-            wandb_metrics = {'val_avg_loss': avg_val_loss, 'val_avg_acc': avg_val_acc,'val_avg_std': std_val_acc, 'test_avg_acc': curr_test_avg_acc, 'test_std_acc': curr_test_std_acc}
+            wandb_metrics = {'val_avg_loss': avg_val_loss, 'val_avg_acc': avg_val_acc,'val_total_acc': total_val_acc,'val_avg_std': std_val_acc, 'test_avg_acc': curr_test_avg_acc,'test_total_acc': curr_test_total_acc, 'test_std_acc': curr_test_std_acc}
             print("epoch", epoch, "metrics", wandb_metrics) 
             if self.args.wandb:
                 wandb.log(wandb_metrics)
@@ -118,7 +118,8 @@ class Trainer:
         with torch.no_grad():
             self.model.eval()
             lst_avg_loss = []
-            lst_accs = []            
+            lst_accs = []    
+            lst_cnts = []        
             for scenario in self.metadata.keys():
                 dataloader = dataloaders[scenario][dataloader_type]
                 allpreds = []
@@ -137,11 +138,13 @@ class Trainer:
                     del inputs
                 acc = sum([int(i==j) for i,j in zip(allpreds, alllabels)])/len(allpreds)
                 avg_loss /= cnt
+                lst_cnts.append(len(allpreds))
                 lst_avg_loss.append(avg_loss)
                 lst_accs.append(acc)
+            lst_cnts_np = np.array(lst_cnts)
             lst_avg_loss_np = np.array(lst_avg_loss)
             lst_accs_np = np.array(lst_accs)
-            return np.mean(lst_avg_loss_np), np.mean(lst_accs_np), np.std(lst_accs_np)
+            return np.mean(lst_avg_loss_np), np.mean(lst_accs_np), np.sum(lst_accs_np * lst_cnts_np) / np.sum(lst_cnts_np),  np.std(lst_accs_np)
     
     def test(self, args, model, dataloaders):
         with torch.no_grad():
@@ -149,7 +152,8 @@ class Trainer:
             model.load_state_dict(torch.load(path), strict=False)
             model.eval()
             lst_avg_loss = []
-            lst_accs = []            
+            lst_accs = []    
+            lst_cnts = []           
             for scenario in self.metadata.keys():
                 dataloader = dataloaders[scenario]["test"]
                 allpreds = []
@@ -168,9 +172,12 @@ class Trainer:
                     del inputs
                 acc = sum([int(i==j) for i,j in zip(allpreds, alllabels)])/len(allpreds)
                 avg_loss /= cnt
+                lst_cnts.append(len(allpreds))
                 lst_avg_loss.append(avg_loss)
                 lst_accs.append(acc)
+            lst_cnts_np = np.array(lst_cnts)
             lst_avg_loss_np = np.array(lst_avg_loss)
             lst_accs_np = np.array(lst_accs)
             mean_acc, std_acc = np.mean(lst_accs_np), np.std(lst_accs_np)
-            print(f"The mean/std accuracy of the best model across scenarios is {mean_acc}/{std_acc}")
+            print(f"The total test accuracy across scenarios is {np.sum(lst_accs_np * lst_cnts_np) / np.sum(lst_cnts_np)}")
+            print(f"The mean/std test accuracy of the best model across scenarios is {mean_acc}/{std_acc}")
