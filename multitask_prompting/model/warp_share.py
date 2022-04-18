@@ -15,6 +15,12 @@ class WARPShare(nn.Module):
         self.templates = {}
         self.models = {}
 
+        self.shared_template =  MixedTemplate(
+            tokenizer = self.tokenizer,
+            text= args.prompt_text,
+            model = self.plm
+        )
+
         for scenario in metadata.keys():
             self.verbalizers[scenario] = SoftVerbalizer(
                 classes=metadata[scenario]['classes'],

@@ -25,9 +25,6 @@ class Trainer:
         num_training_steps = {}
         for scenario in self.metadata.keys():
             train_dataloader = dataloaders[scenario]['train']
-            valid_dataloader = dataloaders[scenario]['valid']
-            test_dataloader = dataloaders[scenario]['test']
-
             num_training_steps[scenario] = len(train_dataloader) * self.args.epochs
             if self.args.tune_plm: # normally we freeze the model when using soft_template. However, we keep the option to tune plm
                 no_decay = ['bias', 'LayerNorm.weight'] # it's always good practice to set no decay to biase and LayerNorm parameters
@@ -57,16 +54,14 @@ class Trainer:
                     optimizer2[scenario] = AdamW(optimizer_grouped_parameters2, lr=self.args.prompt_learning_rate)
                     scheduler2[scenario] = get_constant_schedule_with_warmup(optimizer2[scenario],  num_warmup_steps=self.args.warmup) 
 
-        best_val_acc = 0
-        curr_test_loss = 0
-        curr_test_acc = 0
-
+        best_avg_val_acc = 0
         tot_train_time = 0
         self.model.train()
         progress_bar = tqdm(range(sum(ntr for ntr in num_training_steps.values())))
 
         for epoch in range(self.args.epochs):
             for scenario in self.metadata.keys():
+                train_dataloader = dataloaders[scenario]['train']
                 loss_func = torch.nn.CrossEntropyLoss()
                 for step, inputs in enumerate(train_dataloader):
                     inputs = inputs.to(self.device)
@@ -106,7 +101,7 @@ class Trainer:
                 with open(info_path) as f:
                     info = json.load(f)
             else:
-                info = { "params": utils.get_num_trainable_params(self.args, self.model), "metrics": []}
+                info = { "params": utils.get_num_trainable_params(self.args, self.metadata.keys(), self.model), "metrics": []}
             
             metric = {'epoch': epoch + 1, 'val_avg_acc': avg_val_acc, 'val_avg_std': std_val_acc, 'test_avg_acc': curr_test_avg_acc, 'test_std_acc': curr_test_std_acc}
             info["metrics"].append(metric) 
@@ -120,12 +115,12 @@ class Trainer:
             self.model.train()
     
     def evaluate(self, dataloaders, dataloader_type):
-        dataloader = dataloaders[dataloader_type]
         with torch.no_grad():
             self.model.eval()
             lst_avg_loss = []
             lst_accs = []            
             for scenario in self.metadata.keys():
+                dataloader = dataloaders[scenario][dataloader_type]
                 allpreds = []
                 alllabels = []    
                 avg_loss = 0
@@ -148,7 +143,7 @@ class Trainer:
             lst_accs_np = np.array(lst_accs)
             return np.mean(lst_avg_loss_np), np.mean(lst_accs_np), np.std(lst_accs_np)
     
-    def test(self, args, model, dataloader):
+    def test(self, args, model, dataloaders):
         with torch.no_grad():
             path = Path(args.model_dir) / utils.get_uniq_str(args) / "model.pth" 
             model.load_state_dict(torch.load(path), strict=False)
@@ -156,6 +151,7 @@ class Trainer:
             lst_avg_loss = []
             lst_accs = []            
             for scenario in self.metadata.keys():
+                dataloader = dataloaders[scenario]["test"]
                 allpreds = []
                 alllabels = []    
                 avg_loss = 0

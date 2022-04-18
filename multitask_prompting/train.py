@@ -64,4 +64,4 @@ def main():
         trainer.train(dataloaders)
     
     if args.do_test:
-        trainer.test(dataloaders)
+        trainer.test(args, model, dataloaders)
