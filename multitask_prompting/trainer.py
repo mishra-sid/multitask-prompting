@@ -1,3 +1,4 @@
+from collections import defaultdict
 import wandb
 import torch
 import numpy as np
@@ -21,8 +22,16 @@ class Trainer:
         self.model.to(self.device)
     
     def train(self, dataloaders):
+        best_avg_val_acc = 0
+        tot_train_time = 0
+        self.model.train()
+        best_val_accs = defaultdict(lambda : 0)
+        test_accs = defaultdict(lambda : 0)
+        val_accs = defaultdict(lambda : 0)
+
         optimizer1, optimizer2, scheduler1, scheduler2 = {},{},{},{} 
         num_training_steps = {}
+        
         for scenario in self.metadata.keys():
             train_dataloader = dataloaders[scenario]['train']
             num_training_steps[scenario] = len(train_dataloader) * self.args.epochs
@@ -53,13 +62,13 @@ class Trainer:
                 elif self.args.optimizer.lower() == "adamw":
                     optimizer2[scenario] = AdamW(optimizer_grouped_parameters2, lr=self.args.prompt_learning_rate)
                     scheduler2[scenario] = get_constant_schedule_with_warmup(optimizer2[scenario],  num_warmup_steps=self.args.warmup) 
-
-        best_avg_val_acc = 0
-        tot_train_time = 0
-        self.model.train()
+        
         progress_bar = tqdm(range(sum(ntr for ntr in num_training_steps.values())))
-
+        #For every epoch
         for epoch in range(self.args.epochs):
+            for scenario in self.metadata.keys():
+                print(scenario)
+            #Train every scenario
             for scenario in self.metadata.keys():
                 train_dataloader = dataloaders[scenario]['train']
                 loss_func = torch.nn.CrossEntropyLoss()
@@ -85,35 +94,67 @@ class Trainer:
                     del inputs
                     tot_train_time += time.time()
             
-            uniq = utils.get_uniq_str(self.args)
-            save_path_dir = Path(self.args.model_dir) / uniq
-            save_path_dir.mkdir(parents=True, exist_ok=True)
-            
-            avg_val_loss, avg_val_acc, total_val_acc, std_val_acc = self.evaluate(dataloaders, "valid")
-            if avg_val_acc >= best_avg_val_acc:
-                best_avg_val_acc = avg_val_acc
-                curr_test_avg_loss, curr_test_avg_acc, curr_test_total_acc, curr_test_std_acc = self.evaluate(dataloaders, "test")    
-                torch.save(self.model.state_dict(), save_path_dir / "model.pth")
+            #Evaluate every scenario
+            for scenario in self.metadata.keys():
+                uniq = utils.get_uniq_str(self.args)
+                save_path_dir = Path(self.args.model_dir)/ uniq/ scenario
+                save_path_dir.mkdir(parents=True, exist_ok=True)
+                
+                val_loss, val_acc = self.evaluate_per_scenario(dataloaders,scenario, "valid")
+                if val_acc >= best_val_accs[scenario]:
+                    best_val_accs[scenario] = val_acc
+                    test_loss, test_acc = self.evaluate_per_scenario(dataloaders, scenario,"test")    
+                    torch.save(self.model.state_dict(), save_path_dir / "model.pth")
 
-            info_path = save_path_dir / "info.json"
-            info = None
-            if info_path.exists():
-                with open(info_path) as f:
-                    info = json.load(f)
-            else:
-                info = { "params": utils.get_num_trainable_params(self.args, self.metadata.keys(), self.model), "metrics": []}
+                info_path = save_path_dir / "info.json"
+                info = None
+                if info_path.exists():
+                    with open(info_path) as f:
+                        info = json.load(f)
+                else:
+                    info = { "params": utils.get_num_trainable_params(self.args, self.metadata.keys(), self.model), "metrics": []}
+                
+                metric = {'epoch': epoch + 1, 'test_acc': test_acc, 'val_acc': val_acc}
+                info["metrics"].append(metric)
+
+                test_accs[scenario]  = test_acc
+                val_accs[scenario] = val_acc
+
+                with open(info_path, 'w') as wf:
+                    json.dump(info, wf)
             
-            metric = {'epoch': epoch + 1, 'val_avg_acc': avg_val_acc,'val_total_acc': total_val_acc, 'val_avg_std': std_val_acc, 'test_avg_acc': curr_test_avg_acc, 'test_total_acc': curr_test_total_acc, 'test_std_acc': curr_test_std_acc}
-            info["metrics"].append(metric) 
-            
-            with open(info_path, 'w') as wf:
-                json.dump(info, wf)
-            wandb_metrics = {'val_avg_loss': avg_val_loss, 'val_avg_acc': avg_val_acc,'val_total_acc': total_val_acc,'val_avg_std': std_val_acc, 'test_avg_acc': curr_test_avg_acc,'test_total_acc': curr_test_total_acc, 'test_std_acc': curr_test_std_acc}
+            # Calculate and log the average metrics
+            val_avg_acc = np.mean(np.array([val_accs[i] for i in val_accs]))
+            test_avg_acc = np.mean(np.array([test_accs[i] for i in test_accs]))
+            wandb_metrics = {'val_avg_acc': val_avg_acc, 'test_avg_acc': test_avg_acc }
             print("epoch", epoch, "metrics", wandb_metrics) 
             if self.args.wandb:
                 wandb.log(wandb_metrics)
             self.model.train()
     
+    def evaluate_per_scenario(self, dataloaders,scenario, dataloader_type):
+        dataloader = dataloaders[scenario][dataloader_type]
+        with torch.no_grad():
+            self.model.eval()
+            allpreds = []
+            alllabels = []
+            avg_loss = 0
+            loss_func = torch.nn.CrossEntropyLoss()
+            cnt = 0
+            for step, inputs in enumerate(dataloader):
+                cnt += 1
+                inputs = inputs.to(self.device)
+                logits = self.model(inputs, scenario=scenario)  
+                labels = inputs['label']
+                avg_loss += loss_func(logits, labels).item()
+                alllabels.extend(labels.cpu().tolist())
+                allpreds.extend(torch.argmax(logits, dim=-1).cpu().tolist())
+                del inputs
+            acc = sum([int(i==j) for i,j in zip(allpreds, alllabels)])/len(allpreds)
+            avg_loss /= cnt
+            return avg_loss, acc
+
+
     def evaluate(self, dataloaders, dataloader_type):
         with torch.no_grad():
             self.model.eval()
