@@ -1,5 +1,6 @@
 import datasets
 
+
 from openprompt import PromptDataLoader
 from openprompt.data_utils import InputExample
 from pathlib import Path
@@ -13,11 +14,8 @@ def load_super_glue_dataset(args):
     scenarios = set(configs)
     metadata = {}
     raw_datasets = {}
-    for scenario in config:
-
-        data_set = datasets.load_dataset(args.data_set,scenario)['train'].shuffle(seed=args.seed)
-
-        Processor = PROCESSORS(args.dataset + "." + scenario)
+    for scenario in configs:
+        Processor = PROCESSORS[args.dataset + "." + scenario]
         all_classes =Processor().get_labels()
         metadata[scenario] = { 'classes': all_classes }
         if args.verbalizer_init == 'random':

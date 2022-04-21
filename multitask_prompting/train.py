@@ -57,7 +57,7 @@ def main():
     set_seed(args.seed)
 
     plm, tokenizer, model_config, wrapper_class = load_plm(args.base_plm_family, args.base_plm_path)
-    if args.dataset is "super_glue":
+    if args.dataset == "super_glue":
         metadata, raw_datasets = load_super_glue_dataset(args)
     else:
         metadata, raw_datasets = load_nlu_dataset(args)
