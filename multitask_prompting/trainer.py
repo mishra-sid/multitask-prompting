@@ -58,10 +58,10 @@ class Trainer:
                                             relative_step=False,
                                             scale_parameter=False,
                                             warmup_init=False) 
-                    scheduler2[scenario] = get_linear_schedule_with_warmup(optimizer2[scenario],  num_warmup_steps=self.args.warmup, num_training_steps=num_training_steps[scenario]) 
+                    scheduler2[scenario] = get_linear_schedule_with_warmup(optimizer2[scenario],  num_warmup_steps=self.args.warmup) 
                 elif self.args.optimizer.lower() == "adamw":
                     optimizer2[scenario] = AdamW(optimizer_grouped_parameters2, lr=self.args.prompt_learning_rate)
-                    scheduler2[scenario] = get_constant_schedule_with_warmup(optimizer2[scenario],  num_warmup_steps=self.args.warmup,num_training_steps=num_training_steps[scenario]) 
+                    scheduler2[scenario] = get_constant_schedule_with_warmup(optimizer2[scenario],  num_warmup_steps=self.args.warmup) 
         
         progress_bar = tqdm(range(sum(ntr for ntr in num_training_steps.values())))
         #For every epoch
