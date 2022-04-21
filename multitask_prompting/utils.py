@@ -6,7 +6,7 @@ def get_num_trainable_params(args, scenarios, model):
     
     if args.model_type == "prompt":
         for scenario in scenarios:
-            param_groups.extend([p for name, p in model.templates[scenario].named_parameters()])
+            param_groups.extend([p for name, p in model.templates[scenario].named_parameters() if 'raw_embedding' not in name])
             param_groups.extend([model.verbalizers[scenario].group_parameters_2])
 
     return sum([sum([p.numel() for p in group if p.requires_grad]) for group in param_groups])

@@ -58,16 +58,14 @@ class Trainer:
                                             relative_step=False,
                                             scale_parameter=False,
                                             warmup_init=False) 
-                    scheduler2[scenario] = get_linear_schedule_with_warmup(optimizer2[scenario],  num_warmup_steps=self.args.warmup) 
+                    scheduler2[scenario] = get_linear_schedule_with_warmup(optimizer2[scenario],  num_warmup_steps=self.args.warmup, num_training_steps=num_training_steps[scenario]) 
                 elif self.args.optimizer.lower() == "adamw":
                     optimizer2[scenario] = AdamW(optimizer_grouped_parameters2, lr=self.args.prompt_learning_rate)
-                    scheduler2[scenario] = get_constant_schedule_with_warmup(optimizer2[scenario],  num_warmup_steps=self.args.warmup) 
+                    scheduler2[scenario] = get_constant_schedule_with_warmup(optimizer2[scenario],  num_warmup_steps=self.args.warmup,num_training_steps=num_training_steps[scenario]) 
         
         progress_bar = tqdm(range(sum(ntr for ntr in num_training_steps.values())))
         #For every epoch
         for epoch in range(self.args.epochs):
-            for scenario in self.metadata.keys():
-                print(scenario)
             #Train every scenario
             for scenario in self.metadata.keys():
                 train_dataloader = dataloaders[scenario]['train']
@@ -126,6 +124,20 @@ class Trainer:
             # Calculate and log the average metrics
             val_avg_acc = np.mean(np.array([val_accs[i] for i in val_accs]))
             test_avg_acc = np.mean(np.array([test_accs[i] for i in test_accs]))
+
+            agg_info_path = Path(self.args.model_dir)/ uniq / "agg_info.json"
+            agg_info = None
+            if agg_info_path.exists():
+                with open(agg_info_path) as f:
+                    agg_info = json.load(f)
+            else:
+                agg_info = { "params": utils.get_num_trainable_params(self.args, self.metadata.keys(), self.model), "metrics": []}
+            agg_metric = {'epoch': epoch + 1, 'val_avg_acc': val_avg_acc, 'test_avg_acc': test_avg_acc}
+            agg_info["metrics"].append(agg_metric)
+
+            with open(agg_info_path, 'w') as wf:
+                    json.dump(agg_info, wf)
+                    
             wandb_metrics = {'val_avg_acc': val_avg_acc, 'test_avg_acc': test_avg_acc }
             print("epoch", epoch, "metrics", wandb_metrics) 
             if self.args.wandb:
