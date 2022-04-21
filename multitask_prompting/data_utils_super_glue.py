@@ -1,0 +1,38 @@
+import datasets
+
+from openprompt import PromptDataLoader
+from openprompt.data_utils import InputExample
+from pathlib import Path
+from openprompt.data_utils import PROCESSORS
+
+configs = ['boolq', 'cb', 'copa', 'multirc', 'rte', 'wic', 'wsc', 'wsc.fixed', 'axb', 'axg']
+
+
+def load_super_glue_dataset(args):
+    multiple_inputs={}
+    scenarios = set(configs)
+    metadata = {}
+    raw_datasets = {}
+    for scenario in config:
+
+        data_set = datasets.load_dataset(args.data_set,scenario)['train'].shuffle(seed=args.seed)
+
+        Processor = PROCESSORS(args.dataset + "." + scenario)
+        all_classes =Processor().get_labels()
+        metadata[scenario] = { 'classes': all_classes }
+        if args.verbalizer_init == 'random':
+            metadata[scenario]['label_words'] = None
+        elif args.verbalizer_init == "raw":
+            metadata[scenario]['label_words'] = {l: l for l in all_classes}
+
+        dataset_train_all =  Processor().get_train_examples(args.data_dir)
+        dataset_valid_all = Processor().get_dev_examples(args.data_dir)
+        dataset_test_all = Processor().get_test_examples(args.data_dir)
+
+        if  scenario in ["copa", "wsc"]:
+           metadata[scenario]  ={ 'text_num': "SINGLE" }
+        else:
+           metadata[scenario]  = { 'text_num': "MULTIPLE" }
+        raw_datasets[config] = {'train': dataset_train_all, 'valid': dataset_valid_all, 'test': dataset_test_all }
+
+    return metadata,raw_datasets

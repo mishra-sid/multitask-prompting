@@ -4,7 +4,8 @@ from openprompt import PromptDataLoader
 from openprompt.data_utils import InputExample
 from pathlib import Path
 
-def load_dataset(args):
+
+def load_nlu_dataset(args):
     data_set = datasets.load_dataset(args.dataset)['train'].shuffle(seed=args.seed)
     all_labels = data_set.features['label'].names
     all_scens = list(map(lambda x: x.split('_')[0], all_labels))
@@ -27,7 +28,9 @@ def load_dataset(args):
         data_set_scenario = data_set_scenario.map(change_labels)
         data_set_scenario = data_set_scenario.rename_column("label", "labels")
 
-        metadata[scenario] = { 'classes': classes } 
+        metadata[scenario] = { 'classes': classes }
+        metadata[scenario]  ={ 'text_num': "SINGLE" }
+
         
         if args.verbalizer_init == 'random':
             metadata[scenario]['label_words'] = None
