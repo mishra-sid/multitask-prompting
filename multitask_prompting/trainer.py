@@ -68,6 +68,7 @@ class Trainer:
         for epoch in range(self.args.epochs):
             #Train every scenario
             for scenario in self.metadata.keys():
+                self.model.models[scenario].to('cuda')
                 train_dataloader = dataloaders[scenario]['train']
                 loss_func = torch.nn.CrossEntropyLoss()
                 for step, inputs in enumerate(train_dataloader):
@@ -91,9 +92,10 @@ class Trainer:
                         scheduler2[scenario].step()
                     del inputs
                     tot_train_time += time.time()
-            
+                self.model.models[scenario].to('cpu')
             #Evaluate every scenario
             for scenario in self.metadata.keys():
+                self.model.models[scenario].to('cuda')
                 uniq = utils.get_uniq_str(self.args)
                 save_path_dir = Path(self.args.model_dir)/ uniq/ scenario
                 save_path_dir.mkdir(parents=True, exist_ok=True)
@@ -120,7 +122,8 @@ class Trainer:
 
                 with open(info_path, 'w') as wf:
                     json.dump(info, wf)
-            
+                self.model.models[scenario].to('cpu')
+
             # Calculate and log the average metrics
             val_avg_acc = np.mean(np.array([val_accs[i] for i in val_accs]))
             test_avg_acc = np.mean(np.array([test_accs[i] for i in test_accs]))
