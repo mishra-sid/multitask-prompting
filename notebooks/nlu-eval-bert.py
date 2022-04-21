@@ -164,6 +164,3 @@ test_acc_mean, test_acc_std = np.mean(test_accs), np.std(test_accs)
 print(f"Mean/std accuracies for valid data is {val_acc_mean}/{val_acc_std}")
 print(f"Mean/std accuracies for test data is {test_acc_mean}/{test_acc_std}")
 
-
-
-
