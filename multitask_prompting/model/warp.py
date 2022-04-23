@@ -1,6 +1,7 @@
 from torch import nn
 from openprompt import PromptForClassification
 from openprompt.prompts import SoftVerbalizer, MixedTemplate
+from openprompt import PromptForClassification
 from .ModifiedPromptModelForClassification import ModifiedPromptForClassification
 class WARP(nn.Module):
     def __init__(self, args, plm, metadata, tokenizer, model_config, wrapper_class): 
@@ -24,11 +25,18 @@ class WARP(nn.Module):
             model = self.plm
         )
 
-        self.model = ModifiedPromptForClassification(
-            template = self.template,
-            plm = self.plm,
-            verbalizer = self.verbalizer
-        )
+        if args.verbalizer_input == 'avg':
+            self.model = ModifiedPromptForClassification(
+                template = self.template,
+                plm = self.plm,
+                verbalizer = self.verbalizer
+            )
+        else:
+            self.model = PromptForClassification(
+                template = self.template,
+                plm = self.plm,
+                verbalizer = self.verbalizer
+            )
     
     def forward(self, inp):
         return self.model(inp)

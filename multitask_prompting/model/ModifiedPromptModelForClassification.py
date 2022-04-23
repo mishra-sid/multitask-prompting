@@ -32,6 +32,7 @@ class ModifiedPromptForClassification(PromptForClassification):
                  freeze_plm: bool = False,
                  plm_eval_mode: bool=False
                 ):
+        print("Modified model that uses the average of tokens as input to verbalizer called")
         super().__init__(plm,template,verbalizer,freeze_plm,plm_eval_mode)
 
     # def extract_at_mask(outputs: torch.Tensor,batch):
