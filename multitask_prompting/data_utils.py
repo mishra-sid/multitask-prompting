@@ -29,7 +29,7 @@ def load_nlu_dataset(args):
         data_set_scenario = data_set_scenario.rename_column("label", "labels")
 
         metadata[scenario] = { 'classes': classes }
-        metadata[scenario]  ={ 'text_num': "SINGLE" }
+        metadata[scenario]['text_num']= "SINGLE"
 
         
         if args.verbalizer_init == 'random':

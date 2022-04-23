@@ -26,10 +26,11 @@ class WARP(nn.Module):
             self.verbalizers[scenario] = self.verbalizers[scenario].cuda()
             prompt_text = '{"soft": None, "duplicate":'+ str(args.prompt_num_soft_tokens)+'}{"placeholder":"text_a"}{"mask"}.'
             if  metadata[scenario]["text_num"]=="MULTIPLE" :
-                prompt_text = '{"soft": None, "duplicate":'+ str(args.prompt_num_soft_tokens/2) +'}{"placeholder":"text_a"}{"soft": None, "duplicate":'+str(args.prompt_num_soft_tokens/2)  +'{"placeholder":"text_b"}{"mask"}.'
+                prompt_text = '{"soft": None, "duplicate":'+ str(int((args.prompt_num_soft_tokens)/2)) +'}{"placeholder":"text_a"}{"soft": None, "duplicate":'+str(int((args.prompt_num_soft_tokens)/2))  +'}{"placeholder":"text_b"}{"mask"}.'
+
             self.templates[scenario] =  MixedTemplate(
                 tokenizer = self.tokenizer,
-                text= prompt_text,
+                text=  prompt_text,
                 model = self.plm
             )
             self.templates[scenario] = self.templates[scenario]

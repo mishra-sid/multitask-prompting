@@ -6,8 +6,8 @@ from openprompt.data_utils import InputExample
 from pathlib import Path
 from openprompt.data_utils import PROCESSORS
 
-configs = ['boolq', 'cb', 'copa', 'multirc', 'rte', 'wic', 'wsc', 'wsc.fixed', 'axb', 'axg']
-
+configs = ['boolq', 'cb', 'copa', 'multirc', 'rte', 'wic', 'wsc']
+# no handling for axb axg and record is to be handled differently
 
 def load_super_glue_dataset(args):
     multiple_inputs={}
@@ -28,9 +28,9 @@ def load_super_glue_dataset(args):
         dataset_test_all = Processor().get_test_examples(args.data_dir)
 
         if  scenario in ["copa", "wsc"]:
-           metadata[scenario]  ={ 'text_num': "SINGLE" }
+           metadata[scenario]['text_num']= "SINGLE" 
         else:
-           metadata[scenario]  = { 'text_num': "MULTIPLE" }
-        raw_datasets[config] = {'train': dataset_train_all, 'valid': dataset_valid_all, 'test': dataset_test_all }
+           metadata[scenario]['text_num']= "MULTIPLE"
+        raw_datasets[scenario] = {'train': dataset_train_all, 'valid': dataset_valid_all, 'test': dataset_test_all }
 
     return metadata,raw_datasets
