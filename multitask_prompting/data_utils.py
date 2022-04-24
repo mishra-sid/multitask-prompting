@@ -44,8 +44,8 @@ def load_dataset(args):
         
         for label in classes:
             data_set_scenario_label = data_set_scenario.filter(lambda ex: all_labels[min_label + ex['labels']] == label)
-            trainvalid_test_dataset = data_set_scenario_label.train_test_split(test_size=args.test_split)
-            train_valid_dataset =trainvalid_test_dataset["train"].train_test_split(test_size=args.valid_split)
+            trainvalid_test_dataset = data_set_scenario_label.train_test_split(test_size=args.test_split,seed = args.seed)
+            train_valid_dataset =trainvalid_test_dataset["train"].train_test_split(test_size=args.valid_split , seed= args.seed)
             dataset_train=[]
             for i in range(len(train_valid_dataset["train"])):
                 entry = train_valid_dataset["train"][i]

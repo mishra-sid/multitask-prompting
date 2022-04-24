@@ -6,7 +6,6 @@ from openprompt.plms import load_plm
 
 from multitask_prompting.model import get_model
 from multitask_prompting.data_utils import load_dataset, get_tokenized_dataloader
-
 def main():
     parser = argparse.ArgumentParser()
     
