@@ -18,7 +18,7 @@ class Trainer:
         self.device = torch.device(args.device)
         self.model.to(self.device)
     
-    def train(self, train_dataloader, valid_dataloader, test_dataloader):
+    def train(self, train_dataloader, valid_dataloader, test_dataloader,scenario = None):
         num_training_steps = len(train_dataloader) * self.args.epochs
         if self.args.tune_plm: # normally we freeze the model when using soft_template. However, we keep the option to tune plm
             no_decay = ['bias', 'LayerNorm.weight'] # it's always good practice to set no decay to biase and LayerNorm parameters
@@ -82,7 +82,10 @@ class Trainer:
             
             tot_train_time += time.time()
             uniq = utils.get_uniq_str(self.args)
-            save_path_dir = Path(self.args.model_dir) / uniq
+
+            save_path_dir = Path(self.args.model_dir) / uniq 
+            if scenario:
+                save_path_dir = Path(self.args.model_dir) / uniq / scenario
             save_path_dir.mkdir(parents=True, exist_ok=True)
             
             val_loss, val_acc = self.evaluate(valid_dataloader)

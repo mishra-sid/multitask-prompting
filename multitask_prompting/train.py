@@ -5,7 +5,7 @@ from openprompt.utils.reproduciblity import set_seed
 from openprompt.plms import load_plm
 
 from multitask_prompting.model import get_model
-from multitask_prompting.data_utils import load_dataset, get_tokenized_dataloader
+from multitask_prompting.data_utils import load_dataset, get_tokenized_dataloader, load_datasets_scenario
 
 def main():
     parser = argparse.ArgumentParser()
@@ -35,6 +35,8 @@ def main():
     parser.add_argument('--verbalizer_init', type=str, default='random', choices=['random', 'raw', 'first', 'last'])
     parser.add_argument("--max_seq_length", type=int, default=64)
     parser.add_argument("--verbalizer_input", type=str, default= 'mask',help='mask for usual warp, avg for avg of tokens instead')
+    parser.add_argument("--train_per_scenario", type=bool, default= False,help='whether to train for all scenarios separately')
+
     
     # hyperparams
     parser.add_argument('--learning_rate', type=float, default=2e-5)
@@ -55,10 +57,29 @@ def main():
     set_seed(args.seed)
 
     plm, tokenizer, model_config, wrapper_class = load_plm(args.base_plm_family, args.base_plm_path)
-    metadata, train_raw_dataset, eval_raw_dataset, test_raw_dataset = load_dataset(args)
-    model = get_model(args.task, args.model)(args, plm, metadata, tokenizer, model_config, wrapper_class)
-    train_dataloader, valid_dataloader, test_dataloader = get_tokenized_dataloader(args, train_raw_dataset, eval_raw_dataset, test_raw_dataset, model.tokenizer, model.template, model.wrapper_class)
 
-    trainer = Trainer(args, model)
-    if args.do_train:
-        trainer.train(train_dataloader, valid_dataloader, test_dataloader)
+    if args.train_per_scenario ==False:
+        print("Not training per scenario")
+        metadata, train_raw_dataset, eval_raw_dataset, test_raw_dataset = load_dataset(args)
+        model = get_model(args.task, args.model)(args, plm, metadata, tokenizer, model_config, wrapper_class)
+        train_dataloader, valid_dataloader, test_dataloader = get_tokenized_dataloader(args, train_raw_dataset, eval_raw_dataset, test_raw_dataset, model.tokenizer, model.template, model.wrapper_class)
+
+        trainer = Trainer(args, model)
+        if args.do_train:
+            trainer.train(train_dataloader, valid_dataloader, test_dataloader)
+    
+    else:
+        metadata, raw_datasets = load_datasets_scenario(args)
+
+        for scenario in metadata.keys():
+            print("Training model for scenario: ", scenario)
+            metadata_scenario, train_raw_dataset, eval_raw_dataset, test_raw_dataset = metadata[scenario], raw_datasets[scenario]['train'], raw_datasets[scenario]['valid'], raw_datasets[scenario]['test']
+            model = get_model(args.task, args.model)(args, plm, metadata_scenario, tokenizer, model_config, wrapper_class)
+            train_dataloader, valid_dataloader, test_dataloader = get_tokenized_dataloader(args, train_raw_dataset, eval_raw_dataset, test_raw_dataset, model.tokenizer, model.template, model.wrapper_class)
+
+            trainer = Trainer(args, model)
+            if args.do_train:
+                trainer.train(train_dataloader, valid_dataloader, test_dataloader,scenario)
+
+
+
