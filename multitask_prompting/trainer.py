@@ -103,7 +103,8 @@ class Trainer:
                 val_loss, val_acc = self.evaluate_per_scenario(dataloaders,scenario, "valid")
                 if val_acc >= best_val_accs[scenario]:
                     best_val_accs[scenario] = val_acc
-                    test_loss, test_acc = self.evaluate_per_scenario(dataloaders, scenario,"test")    
+                    test_loss, test_acc = self.evaluate_per_scenario(dataloaders, scenario,"test")   
+                    test_accs[scenario]  = test_acc 
                     torch.save(self.model.state_dict(), save_path_dir / "model.pth")
 
                 info_path = save_path_dir / "info.json"
@@ -114,10 +115,10 @@ class Trainer:
                 else:
                     info = { "params": utils.get_num_trainable_params(self.args, self.metadata.keys(), self.model), "metrics": []}
                 
-                metric = {'epoch': epoch + 1, 'test_acc': test_acc, 'val_acc': val_acc}
+                metric = {'epoch': epoch + 1, 'test_acc': test_accs[scenario], 'val_acc': val_acc}
                 info["metrics"].append(metric)
 
-                test_accs[scenario]  = test_acc
+                
                 val_accs[scenario] = val_acc
 
                 with open(info_path, 'w') as wf:
