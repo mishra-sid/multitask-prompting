@@ -1,6 +1,7 @@
 from torch import nn
 from openprompt import PromptForClassification
 from openprompt.prompts import SoftVerbalizer, MixedTemplate
+from .MixedTemplateWrapper import MixedTemplateWrapper
 
 class WARPShare(nn.Module):
     def __init__(self, args, plm, metadata, tokenizer, model_config, wrapper_class): 
@@ -20,7 +21,13 @@ class WARPShare(nn.Module):
 #             text= args.prompt_text,
 #             model = self.plm
 #         )
-        self.shared_embedding = nn.Embedding(self.args.shared_token_num,plm.get_input_embeddings().raw_embedding.weight.shape[-1])
+
+        # if self.args.base_plm_family == 'bert':
+        #     emb_size = 768
+        # else:
+        #     #TODO
+        #     emb_size = 1234 
+        self.shared_embedding = nn.Embedding(self.args.shared_token_num, 768)
 
         for scenario in metadata.keys():
             self.verbalizers[scenario] = SoftVerbalizer(
@@ -33,7 +40,8 @@ class WARPShare(nn.Module):
             self.templates[scenario] =  MixedTemplateWrapper(
                 tokenizer = self.tokenizer,
                 text= args.prompt_text,
-                model = self.plm
+                model = self.plm,
+                shared_embedding = self.shared_embedding
             )
 
             self.models[scenario] = PromptForClassification(
@@ -42,5 +50,5 @@ class WARPShare(nn.Module):
                 verbalizer = self.verbalizers[scenario]
             )
     
-    def forward(self, scenario, inp):
+    def forward(self, inp, scenario):
         return self.models[scenario](inp)

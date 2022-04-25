@@ -1,10 +1,11 @@
 from multitask_prompting.model.mlm import MLM
 from multitask_prompting.model.warp import WARP
+from multitask_prompting.model.warp_share import WARPShare
 
 MODEL_CLASSES = {
     'classification': {
         'mlm': MLM,
-        'warp': WARP, 
+        'warp': WARPShare, 
     }
 }
 

@@ -34,6 +34,7 @@ def main():
     parser.add_argument('--prompt_text', type=str, default='{"soft": None, "duplicate": 20}{"placeholder":"text_a"}{"mask"}.')
     parser.add_argument('--verbalizer_init', type=str, default='random', choices=['random', 'raw', 'first', 'last'])
     parser.add_argument("--max_seq_length", type=int, default=64)
+    parser.add_argument("--shared_token_num", type=int, default=10)
     
     # hyperparams
     parser.add_argument('--learning_rate', type=float, default=2e-5)
