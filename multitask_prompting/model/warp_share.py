@@ -15,11 +15,12 @@ class WARPShare(nn.Module):
         self.templates = {}
         self.models = {}
 
-        self.shared_template =  MixedTemplate(
-            tokenizer = self.tokenizer,
-            text= args.prompt_text,
-            model = self.plm
-        )
+#         self.shared_template =  MixedTemplate(
+#             tokenizer = self.tokenizer,
+#             text= args.prompt_text,
+#             model = self.plm
+#         )
+        self.shared_embedding = nn.Embedding(self.args.shared_token_num,plm.get_input_embeddings().raw_embedding.weight.shape[-1])
 
         for scenario in metadata.keys():
             self.verbalizers[scenario] = SoftVerbalizer(
@@ -29,7 +30,7 @@ class WARPShare(nn.Module):
                 tokenizer = self.tokenizer
             )
 
-            self.templates[scenario] =  MixedTemplate(
+            self.templates[scenario] =  MixedTemplateWrapper(
                 tokenizer = self.tokenizer,
                 text= args.prompt_text,
                 model = self.plm
