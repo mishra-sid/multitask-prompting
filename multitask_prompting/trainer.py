@@ -19,7 +19,7 @@ class Trainer:
         self.model.to(self.device)
     
     def train(self, train_dataloader, valid_dataloader, test_dataloader):
-        num_training_steps = len(train_dataloader) * self.args.epochs
+        num_training_steps = self.args.max_steps
         if self.args.tune_plm: # normally we freeze the model when using soft_template. However, we keep the option to tune plm
             no_decay = ['bias', 'LayerNorm.weight'] # it's always good practice to set no decay to biase and LayerNorm parameters
             optimizer_grouped_parameters1 = [
@@ -43,7 +43,7 @@ class Trainer:
                                         relative_step=False,
                                         scale_parameter=False,
                                         warmup_init=False) 
-                scheduler2 = get_linear_schedule_with_warmup(optimizer2,  num_warmup_steps=self.args.warmup) 
+                scheduler2 = get_constant_schedule_with_warmup(optimizer2,  num_warmup_steps=self.args.warmup) 
             elif self.args.optimizer.lower() == "adamw":
                 optimizer2 = AdamW(optimizer_grouped_parameters2, lr=self.args.prompt_learning_rate)
                 scheduler2 = get_constant_schedule_with_warmup(optimizer2,  num_warmup_steps=self.args.warmup) 
@@ -51,14 +51,22 @@ class Trainer:
         loss_func = torch.nn.CrossEntropyLoss()
 
         best_val_acc = 0
-        curr_test_loss = 0
-        curr_test_acc = 0
 
         tot_train_time = 0
         self.model.train()
-        progress_bar = tqdm(range(num_training_steps))
- 
-        for epoch in range(self.args.epochs):
+        
+        pbar_update_freq = 10
+        progress_bar = tqdm(total=self.args.max_steps, desc="Training")
+        
+
+        actual_step = 0
+        total_loss = 0
+        log_loss = 0
+        glb_step = 0
+        leave_training = False
+
+
+        for epoch in range(self.args.num_total_steps):
             for step, inputs in enumerate(train_dataloader):
                 inputs = inputs.to(self.device)
                 tot_train_time -= time.time()
@@ -66,8 +74,19 @@ class Trainer:
                 labels = inputs['label']
                 loss = loss_func(logits, labels)
                 loss.backward()
-                
-                progress_bar.update(1)
+                total_loss += loss.item()
+                actual_step += 1
+
+                if actual_step % self.args.gradient_accumulation_steps:
+                    torch.nn.utils.clip_grad_norm_(self.model.parameters(), 1.0)
+                    glb_step += 1
+
+                    if glb_step % pbar_update_freq == 0:
+                        ave_loss = (total_loss - log_loss)/pbar_update_freq
+                        progress_bar.update(10)
+                        progress_bar.set_postfix({'loss': ave_loss})
+                        log_loss = total_loss
+
                 if optimizer1 is not None:
                     optimizer1.step()
                     optimizer1.zero_grad()
@@ -78,38 +97,47 @@ class Trainer:
                     optimizer2.zero_grad()
                 if scheduler2 is not None:
                     scheduler2.step()
-                del inputs
+                        
             
-            tot_train_time += time.time()
-            uniq = utils.get_uniq_str(self.args)
-            save_path_dir = Path(self.args.model_dir) / uniq
-            save_path_dir.mkdir(parents=True, exist_ok=True)
-            
-            val_loss, val_acc = self.evaluate(valid_dataloader)
-            if val_acc >= best_val_acc:
-                best_val_acc = val_acc
-                curr_test_loss, curr_test_acc = self.evaluate(test_dataloader)    
-                torch.save(self.model.state_dict(), save_path_dir / "model.pth")
+                tot_train_time += time.time()
 
-            info_path = save_path_dir / "info.json"
-            info = None
-            if info_path.exists():
-                with open(info_path) as f:
-                    info = json.load(f)
-            else:
-                info = { "params": utils.get_num_trainable_params(self.args, self.model), "metrics": []}
-            
-            metric = {'epoch': epoch + 1, 'val_acc': val_acc, 'test_acc': curr_test_acc}
-            info["metrics"].append(metric) 
-            
-            with open(info_path, 'w') as wf:
-                json.dump(info, wf)
-            
-            wandb_metrics = {"validation_loss": val_loss, "validation_accuracy": val_acc}
-            print("epoch", epoch, "metrics", wandb_metrics) 
-            if self.args.wandb:
-                wandb.log(wandb_metrics)
-            self.model.train()
+                if actual_step % self.args.gradient_accumulation_steps == 0 and glb_step >0 and glb_step % self.args.eval_every_steps == 0: 
+                    uniq = utils.get_uniq_str(self.args)
+                    save_path_dir = Path(self.args.model_dir) / uniq
+                    save_path_dir.mkdir(parents=True, exist_ok=True)
+                    
+                    val_loss, val_acc = self.evaluate(valid_dataloader)
+                    if val_acc >= best_val_acc:
+                        best_val_acc = val_acc
+                        torch.save(self.model.state_dict(), save_path_dir / "model.pth")
+
+                    info_path = save_path_dir / "info.json"
+                    info = None
+                    if info_path.exists():
+                        with open(info_path) as f:
+                            info = json.load(f)
+                    else:
+                        info = { "params": utils.get_num_trainable_params(self.args, self.model), "metrics": []}
+                    
+                    metric = {'step': glb_step, 'val_acc': val_acc}
+                    info["metrics"].append(metric) 
+                    
+                    with open(info_path, 'w') as wf:
+                        json.dump(info, wf)
+                    
+                    wandb_metrics = {"validation_loss": val_loss, "validation_accuracy": val_acc}
+                    print("step", glb_step, "metrics", metric, flush=True) 
+                    
+                    if self.args.wandb:
+                        wandb.log(wandb_metrics)
+                    self.model.train()
+                
+                if glb_step > self.args.max_steps:
+                    leave_training = True
+                    break
+
+            if leave_training:
+                break
     
     def evaluate(self, dataloader):
         with torch.no_grad():
@@ -127,7 +155,6 @@ class Trainer:
                 avg_loss += loss_func(logits, labels).item()
                 alllabels.extend(labels.cpu().tolist())
                 allpreds.extend(torch.argmax(logits, dim=-1).cpu().tolist())
-                del inputs
             acc = sum([int(i==j) for i,j in zip(allpreds, alllabels)])/len(allpreds)
             avg_loss /= cnt
             return avg_loss, acc
@@ -146,6 +173,5 @@ class Trainer:
                 labels = inputs['label']
                 alllabels.extend(labels.cpu().tolist())
                 allpreds.extend(torch.argmax(logits, dim=-1).cpu().tolist())
-                del inputs
             acc = sum([int(i==j) for i,j in zip(allpreds, alllabels)])/len(allpreds)
             print(f"The accuracy of the model on the dataset is {acc}")

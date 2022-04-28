@@ -5,7 +5,7 @@ from openprompt.utils.reproduciblity import set_seed
 from openprompt.plms import load_plm
 
 from multitask_prompting.model import get_model
-from multitask_prompting.data_utils import load_dataset, get_tokenized_dataloader
+from multitask_prompting.data_utils import load_datasets, get_tokenized_dataloader
 
 def main():
     parser = argparse.ArgumentParser()
@@ -22,29 +22,37 @@ def main():
     
     # args
     parser.add_argument('--task', type=str, default='classification')
-    parser.add_argument('--dataset', type=str, default='nlu_evaluation_data')
+    parser.add_argument('--datasets', type=str, default='super_glue.rte')#,super_glue.cb')
     parser.add_argument('--data_dir', type=str, default='data')
     parser.add_argument('--model', type=str, default='warp')
     parser.add_argument('--model_type', type=str, default='prompt')
     parser.add_argument('--base_plm_family', type=str, default='bert')
     parser.add_argument('--base_plm_path', type=str, default='bert-base-uncased')
     parser.add_argument("--tune_plm", type=bool, default=False)
+    parser.add_argument("--model_init", type=str, default='random')
     parser.add_argument("--test_split", type=float, default=0.3)
     parser.add_argument("--valid_split", type=float, default=0.3)
-    parser.add_argument('--prompt_text', type=str, default='{"soft": None, "duplicate": 20}{"placeholder":"text_a"}{"mask"}.')
+    parser.add_argument("--data_to_clip", type=bool, default=False)
+    parser.add_argument("--max_data_size", type=float, default=100000)
+    parser.add_argument('--prompt_text', type=str, default='{"soft": None, "duplicate": 20} sentence1: {"placeholder":"text_a"} sentence2: {"placeholder":"text_b"} {"mask"}')
     parser.add_argument('--verbalizer_init', type=str, default='random', choices=['random', 'raw', 'first', 'last'])
-    parser.add_argument("--max_seq_length", type=int, default=64)
+    parser.add_argument("--max_seq_length", type=int, default=480)
     
     # hyperparams
     parser.add_argument('--learning_rate', type=float, default=2e-5)
     parser.add_argument('--prompt_learning_rate', type=float, default=0.3)
-    parser.add_argument('--batch_size', type=int, default=32)
-    parser.add_argument('--epochs', type=int, default=20)
-
+    parser.add_argument('--batch_size', type=int, default=4)
+    
     # optimizer 
-    parser.add_argument("--optimizer", type=str, default="adamw")
+    parser.add_argument("--optimizer", type=str, default="adafactor")
     parser.add_argument("--warmup", type=int, default=0)
     parser.add_argument("--weight_decay", type=float, default=0.01)
+    parser.add_argument('--num_total_steps', type=int, default=100000)
+    parser.add_argument('--max_steps', type=int, default=10000)
+    parser.add_argument('--eval_every_steps', type=int, default=10)
+    parser.add_argument('--gradient_accumulation_steps', type=int, default=4)
+
+
     # steps
     parser.add_argument('--do_train', type=bool, default=True)
     parser.add_argument('--do_eval', type=bool, default=True)
@@ -54,7 +62,7 @@ def main():
     set_seed(args.seed)
 
     plm, tokenizer, model_config, wrapper_class = load_plm(args.base_plm_family, args.base_plm_path)
-    metadata, train_raw_dataset, eval_raw_dataset, test_raw_dataset = load_dataset(args)
+    metadata, train_raw_dataset, eval_raw_dataset, test_raw_dataset = load_datasets(args)
     model = get_model(args.task, args.model)(args, plm, metadata, tokenizer, model_config, wrapper_class)
     train_dataloader, valid_dataloader, test_dataloader = get_tokenized_dataloader(args, train_raw_dataset, eval_raw_dataset, test_raw_dataset, model.tokenizer, model.template, model.wrapper_class)
 
