@@ -96,8 +96,8 @@ class MixedTemplateWrapper(MixedTemplate):
         self.soft_token_ids = soft_token_ids   #soft tokens +  text
         self.starting_initial_of_soft_token = int(num_soft_token/2)
         # Generate the embedding needed for soft tokens
-        self.frozen_embeddings = nn.Embedding.from_pretrained(self.global_template.soft_embedding.weight[:self.starting_initial_of_soft_token,:].detach().clone(),freeze= True)
-        self.soft_embedding = nn.Embedding.from_pretrained(self.global_template.soft_embedding.weight[self.starting_initial_of_soft_token:,:].detach().clone())
+        self.frozen_embedding = nn.Embedding.from_pretrained(self.global_template.soft_embedding.weight[:self.starting_initial_of_soft_token,:].detach().clone(),freeze= True)
+        self.tunable_embedding = nn.Embedding.from_pretrained(self.global_template.soft_embedding.weight[self.starting_initial_of_soft_token:,:].detach().clone())
         # self.frozen_embeds = self.global_template.soft_embedding.weight[:self.starting_initial_of_soft_token,:].detach().clone().requires_grad_(False)
         # self.tunable_embeds = self.global_template.soft_embedding.weight[self.starting_initial_of_soft_token:,:].detach().clone().requires_grad_(True)
 
@@ -115,20 +115,39 @@ class MixedTemplateWrapper(MixedTemplate):
 
     def process_batch(self, batch: Union[Dict, InputFeatures]) -> Union[Dict, InputFeatures]:
  
-        print("batch", batch)
+        # print("batch", batch)
         raw_embeds = self.raw_embedding(batch['input_ids'])
-        print("BATCH INPUT SIZE : ",batch['input_ids'])
-        print("RAW EMBEDDINGS :", raw_embeds.shape)
-        
-        soft_embeds = self.soft_embedding()
-        forzen_embeds = self.frozen_embeddings()
-        # soft_embeds = torch.where((batch['soft_token_ids'] < self.starting_initial_of_soft_token ).unsqueeze(-1), self.frozen_embeddings.weight, self.soft_embedding.weight)    
-        # soft_embeds = torch.cat((self.frozen_embeds,self.tunable_embeds),dim=0)
-        print("soft_embeds shape",soft_embeds.shape)
-        
-        inputs_embeds = torch.where((batch['soft_token_ids'] > 0).unsqueeze(-1), soft_embeds, raw_embeds)    
+        # print("BATCH INPUT SIZE : ",batch['input_ids'].shape)
+        # print("RAW EMBEDDINGS :", raw_embeds.shape)
+        # print("RAW_embedding_shape :", self.raw_embedding.weight.shape)
 
-        print("INPUT EMBEDD SHAPE :", inputs_embeds.shape)
+        # print("tunable_embedding_shape :", self.tunable_embedding.weight.shape)
+        # print("frozen_embedding_shape :", self.frozen_embedding.weight.shape)
+
+        
+
+    
+        # print("batch soft token ids :", batch['soft_token_ids'].shape)
+        a = batch['soft_token_ids'][batch['soft_token_ids'] >= self.starting_initial_of_soft_token].reshape((batch['soft_token_ids'].shape[0], -1))
+        # print(a)
+        # print('new soft', batch['soft_token_ids'].shape)
+        # ahalf = [batch['soft_token_ids'] >= self.starting_initial_of_soft_token]
+        b = batch['soft_token_ids'][batch['soft_token_ids'] < self.starting_initial_of_soft_token].reshape((batch['soft_token_ids'].shape[0], -1))
+        # print(b)
+        # print('done')
+        tunable_embeds = self.tunable_embedding(a-self.starting_initial_of_soft_token)
+        # print(tunable_embeds)
+        # print("tunable_embeds shape",tunable_embeds.shape)
+        frozen_embeds = self.frozen_embedding(b)
+        # print(frozen_embeds)
+        # print("frozen_embeds shape",frozen_embeds.shape)
+        # soft_embeds = torch.where((batch['soft_token_ids'] < self.starting_initial_of_soft_token ).unsqueeze(-1), self.frozen_embeddings.weight, self.soft_embedding.weight)    
+        soft_embeds = torch.cat((frozen_embeds,tunable_embeds),dim=1)
+        # print(soft_embeds)
+        # print("soft_embeds shape",soft_embeds.shape)
+        inputs_embeds = torch.where((batch['soft_token_ids'] > 0).unsqueeze(-1), soft_embeds, raw_embeds)    
+        # print("input_embeds done")
+        # print("INPUT EMBEDD SHAPE :", inputs_embeds.shape)
         batch['input_ids'] = None
         batch['inputs_embeds'] = inputs_embeds
         return batch

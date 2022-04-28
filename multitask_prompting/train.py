@@ -6,6 +6,10 @@ from openprompt.plms import load_plm
 
 from multitask_prompting.model import get_model
 from multitask_prompting.data_utils import load_dataset, get_tokenized_dataloader, load_datasets_scenario
+import torch
+from multitask_prompting import utils
+from pathlib import Path
+
 
 def main():
     parser = argparse.ArgumentParser()
@@ -69,12 +73,17 @@ def main():
             trainer.train(train_dataloader, valid_dataloader, test_dataloader)
     
     else:
+
+        
         metadata_, train_raw_dataset, eval_raw_dataset, test_raw_dataset = load_dataset(args)
         global_model = get_model(args.task, args.model)(args, plm, metadata_, tokenizer, model_config, wrapper_class)
         train_dataloader, valid_dataloader, test_dataloader = get_tokenized_dataloader(args, train_raw_dataset, eval_raw_dataset, test_raw_dataset, global_model.tokenizer, global_model.template, global_model.wrapper_class)
         trainer = Trainer(args, global_model)
         if args.do_train:
-            trainer.train(train_dataloader, valid_dataloader, test_dataloader)
+            # trainer.train(train_dataloader, valid_dataloader, test_dataloader)
+            path = Path(args.model_dir) / utils.get_uniq_str(args) / "model.pth" 
+            global_model.load_state_dict(torch.load(path), strict=False)
+
         
         metadata, raw_datasets = load_datasets_scenario(args)
         for scenario in metadata.keys():
