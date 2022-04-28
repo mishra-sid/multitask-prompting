@@ -86,6 +86,8 @@ class Trainer:
             save_path_dir = Path(self.args.model_dir) / uniq 
             if scenario:
                 save_path_dir = Path(self.args.model_dir) / uniq / scenario
+            else:
+                scenario = ''
             save_path_dir.mkdir(parents=True, exist_ok=True)
             
             val_loss, val_acc = self.evaluate(valid_dataloader)
@@ -110,7 +112,7 @@ class Trainer:
             with open(info_path, 'w') as wf:
                 json.dump(info, wf)
             
-            wandb_metrics = {"validation_loss": val_loss, "validation_accuracy": val_acc}
+            wandb_metrics = {scenario+ '_'+ "validation_loss": val_loss, scenario+ '_'+"validation_accuracy": val_acc, scenario+ '_'+'test_acc': curr_test_acc}
             print("epoch", epoch, "metrics", wandb_metrics) 
             if self.args.wandb:
                 wandb.log(wandb_metrics)
