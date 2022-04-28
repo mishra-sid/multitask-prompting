@@ -69,12 +69,18 @@ def main():
             trainer.train(train_dataloader, valid_dataloader, test_dataloader)
     
     else:
+        metadata_, train_raw_dataset, eval_raw_dataset, test_raw_dataset = load_dataset(args)
+        global_model = get_model(args.task, args.model)(args, plm, metadata_, tokenizer, model_config, wrapper_class)
+        train_dataloader, valid_dataloader, test_dataloader = get_tokenized_dataloader(args, train_raw_dataset, eval_raw_dataset, test_raw_dataset, global_model.tokenizer, global_model.template, global_model.wrapper_class)
+        trainer = Trainer(args, global_model)
+        if args.do_train:
+            trainer.train(train_dataloader, valid_dataloader, test_dataloader)
+        
         metadata, raw_datasets = load_datasets_scenario(args)
-
         for scenario in metadata.keys():
             print("Training model for scenario: ", scenario)
             metadata_scenario, train_raw_dataset, eval_raw_dataset, test_raw_dataset = metadata[scenario], raw_datasets[scenario]['train'], raw_datasets[scenario]['valid'], raw_datasets[scenario]['test']
-            model = get_model(args.task, args.model)(args, plm, metadata_scenario, tokenizer, model_config, wrapper_class)
+            model = get_model(args.task, args.model)(args, plm, metadata_scenario, tokenizer, model_config, wrapper_class,global_model)
             train_dataloader, valid_dataloader, test_dataloader = get_tokenized_dataloader(args, train_raw_dataset, eval_raw_dataset, test_raw_dataset, model.tokenizer, model.template, model.wrapper_class)
 
             trainer = Trainer(args, model)

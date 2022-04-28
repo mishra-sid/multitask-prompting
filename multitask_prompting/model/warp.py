@@ -1,16 +1,18 @@
+from multitask_prompting.model.MixedTemplateWrapper import MixedTemplateWrapper
 from torch import nn
 from openprompt import PromptForClassification
 from openprompt.prompts import SoftVerbalizer, MixedTemplate
 from openprompt import PromptForClassification
 from .ModifiedPromptModelForClassification import ModifiedPromptForClassification
 class WARP(nn.Module):
-    def __init__(self, args, plm, metadata, tokenizer, model_config, wrapper_class): 
+    def __init__(self, args, plm, metadata, tokenizer, model_config, wrapper_class,global_model=None): 
         super(WARP, self).__init__()
         self.plm = plm
         self.args = args
         self.tokenizer = tokenizer
         self.model_config = model_config
         self.wrapper_class = wrapper_class
+
         
         self.verbalizer = SoftVerbalizer(
             classes=metadata['classes'],
@@ -18,12 +20,24 @@ class WARP(nn.Module):
             model=self.plm,
             tokenizer = self.tokenizer
         )
+        if global_model is None:
 
-        self.template =  MixedTemplate(
-            tokenizer = self.tokenizer,
-            text= args.prompt_text,
-            model = self.plm
-        )
+        
+            self.template =  MixedTemplate(
+                tokenizer = self.tokenizer,
+                text= args.prompt_text,
+                model = self.plm
+            )
+        else:
+
+            print("HI")
+            global_template = global_model.template
+            self.template =  MixedTemplateWrapper(
+                tokenizer = self.tokenizer,
+                text= args.prompt_text,
+                model = self.plm,
+                global_template=global_template
+            )
 
         if args.verbalizer_input == 'avg':
             self.model = ModifiedPromptForClassification(
