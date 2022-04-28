@@ -4,6 +4,7 @@ from openprompt import PromptForClassification
 from openprompt.prompts import SoftVerbalizer, MixedTemplate
 from openprompt import PromptForClassification
 from .ModifiedPromptModelForClassification import ModifiedPromptForClassification
+from multitask_prompting.model.MixedVerbalizerWrapper import MixedVerbalizerWrapper
 class WARP(nn.Module):
     def __init__(self, args, plm, metadata, tokenizer, model_config, wrapper_class,global_model=None): 
         super(WARP, self).__init__()
@@ -14,29 +15,35 @@ class WARP(nn.Module):
         self.wrapper_class = wrapper_class
 
         
-        self.verbalizer = SoftVerbalizer(
-            classes=metadata['classes'],
-            label_words=metadata['label_words'],
-            model=self.plm,
-            tokenizer = self.tokenizer
-        )
-        if global_model is None:
-
         
+        if global_model is None:
             self.template =  MixedTemplate(
                 tokenizer = self.tokenizer,
                 text= args.prompt_text,
                 model = self.plm
             )
+            self.verbalizer = SoftVerbalizer(
+            classes=metadata['classes'],
+            label_words=metadata['label_words'],
+            model=self.plm,
+            tokenizer = self.tokenizer
+        )
         else:
-
-            print("HI")
+            print("Using global template and verbalizer")
             global_template = global_model.template
             self.template =  MixedTemplateWrapper(
                 tokenizer = self.tokenizer,
                 text= args.prompt_text,
                 model = self.plm,
                 global_template=global_template
+            )
+            global_verbalizer = global_model.verbalizer
+            self.verbalizer = MixedVerbalizerWrapper(
+            classes=metadata['classes'],
+            label_words=metadata['label_words'],
+            model=self.plm,
+            tokenizer = self.tokenizer,
+            global_verbalizer= global_verbalizer
             )
 
         if args.verbalizer_input == 'avg':

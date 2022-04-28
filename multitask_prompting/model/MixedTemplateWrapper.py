@@ -136,7 +136,7 @@ class MixedTemplateWrapper(MixedTemplate):
         # print(b)
         # print('done')
         tunable_embeds = self.tunable_embedding(a-self.starting_initial_of_soft_token)
-        # print(tunable_embeds)
+        # print(tunable_exmbeds)
         # print("tunable_embeds shape",tunable_embeds.shape)
         frozen_embeds = self.frozen_embedding(b)
         # print(frozen_embeds)
